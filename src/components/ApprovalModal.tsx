@@ -22,7 +22,7 @@ export default function ApprovalModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
             <div className="bg-white rounded-lg sm:rounded-xl shadow-2xl max-w-2xl w-full">
                 <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-3 sm:p-4 md:p-6 rounded-t-lg sm:rounded-t-xl">
                     <h2 className="text-base sm:text-lg md:text-xl font-bold">Forward to Technical Review Team</h2>
@@ -62,14 +62,14 @@ export default function ApprovalModal({
                         <Button 
                             onClick={onClose}
                             variant="outline"
-                            className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                            className="border-gray-300 text-gray-700 hover:cursor-pointer"
                         >
                             Cancel
                         </Button>
                         <Button 
                             onClick={onSubmit}
                             disabled={!managementNotes.trim()}
-                            className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                            className="bg-green-600 hover:bg-green-700 hover:cursor-pointer text-white disabled:opacity-50"
                         >
                             <Send className="w-4 h-4 mr-2" />
                             Teruskan ke Review Teknis

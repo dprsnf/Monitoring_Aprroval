@@ -32,7 +32,7 @@ export default function DetailModal({ selectedDocument, onClose }: DetailModalPr
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
             <div className="bg-white rounded-lg sm:rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
                 {/* Modal Header */}
                 <div className="bg-gradient-to-r from-[#125d72] to-[#14a2ba] text-white p-3 sm:p-4 md:p-6 rounded-t-lg sm:rounded-t-xl">
@@ -41,12 +41,12 @@ export default function DetailModal({ selectedDocument, onClose }: DetailModalPr
                             <h2 className="text-base sm:text-lg md:text-xl font-bold mb-1">Document Review Detail</h2>
                             <p className="text-blue-100 text-xs sm:text-sm">ID: {selectedDocument.id}</p>
                         </div>
-                        <Button 
+                        {/* <Button 
                             onClick={onClose}
                             className="bg-white/20 hover:bg-white/30 text-white border-none p-1.5 sm:p-2"
                         >
                             <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </Button>
+                        </Button> */}
                     </div>
                 </div>
 
@@ -216,7 +216,7 @@ export default function DetailModal({ selectedDocument, onClose }: DetailModalPr
                         <Button 
                             onClick={onClose}
                             variant="outline" 
-                            className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm sm:text-base py-2"
+                            className="border-gray-300 text-gray-700 hover:cursor-pointer text-sm sm:text-base py-2"
                         >
                             Close
                         </Button>
