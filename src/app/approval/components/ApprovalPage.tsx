@@ -35,39 +35,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-interface DrawingDocument {
-    id: string;
-    fileName: string;
-    fileType: string;
-    fileSize: string;
-    uploadDate: string;
-    status: "pending" | "approved" | "revision_needed" | "rejected";
-    reviewNotes?: string;
-    reviewDate?: string;
-    reviewedBy?: string;
-    description: string;
-    category: string;
-    priority: "high" | "medium" | "low";
-}
-
-interface VendorApproval {
-    id: string;
-    vendorName: string;
-    company: string;
-    projectTitle: string;
-    submissionDate: string;
-    category: string;
-    priority: "high" | "medium" | "low";
-    reviewDeadline: string;
-    totalDocuments: number;
-    pendingDocuments: number;
-    approvedDocuments: number;
-    rejectedDocuments: number;
-    drawings: DrawingDocument[];
-    description: string;
-}
-
+import { DrawingDocument, VendorApproval } from "@/app/types";
 
 export default function ApprovalPage() {
     const [selectedVendor, setSelectedVendor] = useState<VendorApproval | null>(null);
