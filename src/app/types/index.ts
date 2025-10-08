@@ -71,6 +71,16 @@ export interface Approval {
   updatedAt: string;
 }
 
+export interface ApiErrorResponse{
+    message: string;
+}
+
+export interface FormErrors {
+  email?: string;
+  password?: string;
+}
+
+
 // Props untuk komponen yang menggunakan Document
 export interface DocumentListProps {
   documents: Document[];
