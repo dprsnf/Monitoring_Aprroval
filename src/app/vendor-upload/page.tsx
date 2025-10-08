@@ -38,8 +38,9 @@ export default function VendorUploadPage() {
     const [formData, setFormData] = useState({
         projectTitle: "",
         category: "",
-        description: "",
-        notes: ""
+        noContract: "",
+        notes: "",
+        contractDate: ""
     });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -202,8 +203,9 @@ export default function VendorUploadPage() {
         setFormData({
             projectTitle: "",
             category: "",
-            description: "",
-            notes: ""
+            noContract: "",
+            notes: "",
+            contractDate: ""
         });
         setUploadedFiles([]);
         setShowReviewStep(false);
@@ -279,7 +281,7 @@ export default function VendorUploadPage() {
                             <CardTitle className="text-black font-semibold text-lg drop-shadow-sm">Informasi Proyek</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="projectTitle" className="text-gray-900 font-medium">
                                         Judul Proyek *
@@ -299,33 +301,48 @@ export default function VendorUploadPage() {
                                     <Label htmlFor="category" className="text-gray-900 font-medium">
                                         Kategori *
                                     </Label>
-                                    <select
-                                        value={formData.category}
-                                        onChange={(e) => handleSelectChange('category', e.target.value)}
-                                        className="w-full px-3 py-2 text-black border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
+                                    <input
+                                        id="category"
+                                        name="category"
                                         required
-                                    >
-                                        <option value="">Pilih kategori</option>
-                                        <option value="civil">Civil</option>
-                                        <option value="electrical">Electrical</option>
-                                    </select>
+                                        value={formData.category}
+                                        onChange={handleInputChange}
+                                        placeholder="Contoh: Single Line Diagram - Gardu Induk Cibinong"
+                                        className="w-full px-3 py-2 text-black border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="contractDate" className="text-gray-900 font-medium">
+                                        Tanggal Kontrak *
+                                    </Label>
+                                    <input
+                                        id="contractDate"
+                                        name="contractDate"
+                                        type="date"
+                                        required
+                                        value={formData.contractDate}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 text-black border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
+                                    />
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="description" className="text-gray-900 font-medium">
-                                    Deskripsi Proyek *
-                                </Label>
-                                <Textarea
-                                    id="description"
-                                    name="description"
-                                    required
-                                    rows={4}
-                                    value={formData.description}
-                                    onChange={handleInputChange}
-                                    placeholder="Deskripsikan detail proyek, spesifikasi teknis, dan informasi penting lainnya..."
-                                    className="w-full px-3 py-2 text-black border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors resize-none"
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="noContract" className="text-gray-900 font-medium">
+                                        No. Kontrak *
+                                    </Label>
+                                    <input
+                                        id="noContract"
+                                        name="noContract"
+                                        required
+                                        value={formData.noContract}
+                                        onChange={handleInputChange}
+                                        placeholder="Contoh: K/PLN/2024/001"
+                                        className="w-full px-3 py-2 text-black border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
+                                    />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
