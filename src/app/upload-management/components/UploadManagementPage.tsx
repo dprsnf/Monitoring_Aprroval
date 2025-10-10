@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 // Import components
-import Header from "@/components/Header";
+import Header from "@/components/common/Header";
 import StatisticsCards from "@/components/StatisticsCards";
 import SearchAndFilter from "@/components/SearchAndFilter";
 import ManagementList from "@/components/ManagementList";
-import DetailModal from "@/components/DetailModal";
-import ApprovalModal from "@/components/ApprovalModal";
-import RejectModal from "@/components/RejectModal";
+import DetailModal from "@/components/modal/DetailModal";
+import ApprovalModal from "@/components/modal/ApprovalModal";
+import RejectModal from "@/components/modal/RejectModal";
 
 // Import types
 import { Document, Status, Role, ApprovalType, User as UserType } from "@/app/types";
