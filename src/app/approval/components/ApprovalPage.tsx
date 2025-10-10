@@ -12,7 +12,6 @@ import {
     Filter, 
     CheckCircle, 
     XCircle, 
-    User,
     Calendar,
     Building,
     Eye,
@@ -35,11 +34,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DrawingDocument, VendorApproval } from "@/app/types";
+import { Document, User, Role, Status, ApprovalType, Contract, Approval } from "@/app/types";
+
+// Type untuk data yang ditampilkan di komponen ini (menggunakan type dari schema Prisma)
+interface VendorData {
+  user: User;
+  documents: Document[];
+  projectTitle: string;
+  category: string;
+  priority: "high" | "medium" | "low";
+  reviewDeadline: string;
+  description: string;
+}
 
 export default function ApprovalPage() {
-    const [selectedVendor, setSelectedVendor] = useState<VendorApproval | null>(null);
-    const [selectedDrawing, setSelectedDrawing] = useState<DrawingDocument | null>(null);
+    const [selectedVendor, setSelectedVendor] = useState<VendorData | null>(null);
+    const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState<string>("all");
     const [showRejectModal, setShowRejectModal] = useState(false);
@@ -48,212 +58,200 @@ export default function ApprovalPage() {
     const [rejectReason, setRejectReason] = useState("");
     const [approvalWithNotes, setApprovalWithNotes] = useState("");
 
-    // Sample data untuk vendor dan drawings mereka
-    const vendorApprovals: VendorApproval[] = [
+    // Sample data menggunakan type yang sama dengan schema Prisma
+    const vendorData: VendorData[] = [
         {
-            id: "V001",
-            vendorName: "PT Surya Engineering",
-            company: "PT Surya Engineering Solutions",
+            user: {
+                id: 1,
+                email: "surya.engineering@example.com",
+                name: "PT Surya Engineering",
+                role: Role.Vendor
+            },
             projectTitle: "Gardu Induk Cibinong 150kV",
-            submissionDate: "2024-10-01",
             category: "Electrical",
             priority: "high",
             reviewDeadline: "2024-10-15",
-            totalDocuments: 5,
-            pendingDocuments: 3,
-            approvedDocuments: 1,
-            rejectedDocuments: 1,
             description: "Pembangunan gardu induk 150kV dengan kapasitas 2x60 MVA untuk area Cibinong",
-            drawings: [
+            documents: [
                 {
-                    id: "DRW-001",
-                    fileName: "SLD_GI_Cibinong_Rev01.pdf",
-                    fileType: "PDF",
-                    fileSize: "2.3 MB",
-                    uploadDate: "2024-10-01",
-                    status: "pending",
-                    description: "Single Line Diagram gardu induk 150kV Cibinong dengan protection scheme lengkap",
-                    category: "Electrical",
-                    priority: "high"
+                    id: 1,
+                    name: "SLD_GI_Cibinong_Rev01.pdf",
+                    filePath: "/documents/sld-gi-cibinong.pdf",
+                    status: Status.submitted,
+                    overallDeadline: "2024-10-15",
+                    documentType: ApprovalType.protection,
+                    submittedBy: {
+                        id: 1,
+                        email: "surya.engineering@example.com",
+                        name: "PT Surya Engineering",
+                        role: Role.Vendor
+                    },
+                    submittedById: 1,
+                    createdAt: "2024-10-01",
+                    updatedAt: "2024-10-01",
+                    version: 1,
+                    approvals: [],
+                    progress: "In Review"
                 },
                 {
-                    id: "DRW-002",
-                    fileName: "Layout_Plan_GI_Cibinong.pdf",
-                    fileType: "PDF",
-                    fileSize: "4.1 MB",
-                    uploadDate: "2024-10-01",
-                    status: "approved",
-                    description: "Layout plan gardu induk dengan positioning equipment dan access road",
-                    category: "Civil",
-                    priority: "medium",
-                    reviewNotes: "Layout sudah sesuai standar PLN",
-                    reviewDate: "2024-10-03",
-                    reviewedBy: "Ahmad Techical Team"
+                    id: 2,
+                    name: "Layout_Plan_GI_Cibinong.pdf",
+                    filePath: "/documents/layout-plan.pdf",
+                    status: Status.approved,
+                    overallDeadline: "2024-10-15",
+                    documentType: ApprovalType.civil,
+                    submittedBy: {
+                        id: 1,
+                        email: "surya.engineering@example.com",
+                        name: "PT Surya Engineering",
+                        role: Role.Vendor
+                    },
+                    submittedById: 1,
+                    reviewedBy: {
+                        id: 2,
+                        email: "technical@pln.co.id",
+                        name: "Ahmad Technical Team",
+                        role: Role.Engineer
+                    },
+                    reviewedById: 2,
+                    createdAt: "2024-10-01",
+                    updatedAt: "2024-10-03",
+                    version: 1,
+                    remarks: "Layout sudah sesuai standar PLN",
+                    approvals: [
+                        {
+                            id: 1,
+                            documentId: 2,
+                            type: ApprovalType.civil,
+                            approvedBy: {
+                                id: 2,
+                                email: "technical@pln.co.id",
+                                name: "Ahmad Technical Team",
+                                role: Role.Engineer
+                            },
+                            approvedById: 2,
+                            status: Status.approved,
+                            notes: "Layout sudah sesuai standar PLN",
+                            deadline: "2024-10-15",
+                            createdAt: "2024-10-03",
+                            updatedAt: "2024-10-03"
+                        }
+                    ],
+                    progress: "Approved"
                 },
                 {
-                    id: "DRW-003",
-                    fileName: "Protection_System_Design.pdf",
-                    fileType: "PDF",
-                    fileSize: "3.8 MB",
-                    uploadDate: "2024-10-02",
-                    status: "pending",
-                    description: "Desain sistem proteksi dengan relay coordination dan CT/PT calculation",
-                    category: "Electrical",
-                    priority: "high"
-                },
-                {
-                    id: "DRW-004",
-                    fileName: "Foundation_Design.pdf",
-                    fileType: "PDF",
-                    fileSize: "5.2 MB",
-                    uploadDate: "2024-10-02",
-                    status: "rejected",
-                    description: "Desain pondasi untuk equipment gardu induk",
-                    category: "Civil",
-                    priority: "medium",
-                    reviewNotes: "Perhitungan beban perlu diperbaiki sesuai standar terbaru",
-                    reviewDate: "2024-10-03",
-                    reviewedBy: "Budi Technical Team"
-                },
-                {
-                    id: "DRW-005",
-                    fileName: "Control_House_Layout.pdf",
-                    fileType: "PDF",
-                    fileSize: "2.8 MB",
-                    uploadDate: "2024-10-02",
-                    status: "pending",
-                    description: "Layout control house dengan arrangement panel dan equipment",
-                    category: "Electrical",
-                    priority: "medium"
+                    id: 3,
+                    name: "Protection_System_Design.pdf",
+                    filePath: "/documents/protection-design.pdf",
+                    status: Status.inReviewEngineering,
+                    overallDeadline: "2024-10-15",
+                    documentType: ApprovalType.protection,
+                    submittedBy: {
+                        id: 1,
+                        email: "surya.engineering@example.com",
+                        name: "PT Surya Engineering",
+                        role: Role.Vendor
+                    },
+                    submittedById: 1,
+                    createdAt: "2024-10-02",
+                    updatedAt: "2024-10-02",
+                    version: 1,
+                    approvals: [],
+                    progress: "In Review"
                 }
             ]
         },
         {
-            id: "V002",
-            vendorName: "PT Buana Teknik",
-            company: "PT Buana Teknik Mandiri",
+            user: {
+                id: 3,
+                email: "buana.teknik@example.com",
+                name: "PT Buana Teknik",
+                role: Role.Vendor
+            },
             projectTitle: "Substation Bekasi 70kV",
-            submissionDate: "2024-09-28",
             category: "Electrical",
             priority: "medium",
             reviewDeadline: "2024-10-12",
-            totalDocuments: 3,
-            pendingDocuments: 2,
-            approvedDocuments: 1,
-            rejectedDocuments: 0,
             description: "Upgrade substation 70kV di area Bekasi dengan penambahan bay baru",
-            drawings: [
+            documents: [
                 {
-                    id: "DRW-006",
-                    fileName: "SLD_Substation_Bekasi.pdf",
-                    fileType: "PDF",
-                    fileSize: "1.9 MB",
-                    uploadDate: "2024-09-28",
-                    status: "approved",
-                    description: "Single line diagram untuk upgrade substation Bekasi",
-                    category: "Electrical",
-                    priority: "medium",
-                    reviewNotes: "Diagram sudah sesuai dengan requirement",
-                    reviewDate: "2024-09-30",
-                    reviewedBy: "Citra Technical Team"
-                },
-                {
-                    id: "DRW-007",
-                    fileName: "Bay_Addition_Layout.pdf",
-                    fileType: "PDF",
-                    fileSize: "3.2 MB",
-                    uploadDate: "2024-09-29",
-                    status: "pending",
-                    description: "Layout penambahan bay baru dengan clearance calculation",
-                    category: "Electrical",
-                    priority: "medium"
-                },
-                {
-                    id: "DRW-008",
-                    fileName: "Cable_Routing_Plan.pdf",
-                    fileType: "PDF",
-                    fileSize: "2.1 MB",
-                    uploadDate: "2024-09-29",
-                    status: "pending",
-                    description: "Routing plan untuk kabel control dan power bay baru",
-                    category: "Electrical",
-                    priority: "low"
-                }
-            ]
-        },
-        {
-            id: "V003",
-            vendorName: "PT Mitra Power",
-            company: "PT Mitra Power Solutions",
-            projectTitle: "Gardu Distribusi Tangerang",
-            submissionDate: "2024-09-30",
-            category: "Electrical",
-            priority: "low",
-            reviewDeadline: "2024-10-20",
-            totalDocuments: 4,
-            pendingDocuments: 4,
-            approvedDocuments: 0,
-            rejectedDocuments: 0,
-            description: "Pembangunan gardu distribusi 20kV untuk area perumahan Tangerang",
-            drawings: [
-                {
-                    id: "DRW-009",
-                    fileName: "Distribution_SLD.pdf",
-                    fileType: "PDF",
-                    fileSize: "1.5 MB",
-                    uploadDate: "2024-09-30",
-                    status: "pending",
-                    description: "Single line diagram gardu distribusi 20kV",
-                    category: "Electrical",
-                    priority: "low"
-                },
-                {
-                    id: "DRW-010",
-                    fileName: "Site_Plan_Distribution.pdf",
-                    fileType: "PDF",
-                    fileSize: "2.7 MB",
-                    uploadDate: "2024-09-30",
-                    status: "pending",
-                    description: "Site plan untuk gardu distribusi dengan access road",
-                    category: "Civil",
-                    priority: "low"
-                },
-                {
-                    id: "DRW-011",
-                    fileName: "Equipment_Layout.pdf",
-                    fileType: "PDF",
-                    fileSize: "3.1 MB",
-                    uploadDate: "2024-09-30",
-                    status: "pending",
-                    description: "Layout equipment transformer dan switchgear",
-                    category: "Electrical",
-                    priority: "low"
-                },
-                {
-                    id: "DRW-012",
-                    fileName: "Grounding_System.pdf",
-                    fileType: "PDF",
-                    fileSize: "1.8 MB",
-                    uploadDate: "2024-09-30",
-                    status: "pending",
-                    description: "Desain sistem grounding untuk gardu distribusi",
-                    category: "Electrical",
-                    priority: "low"
+                    id: 4,
+                    name: "SLD_Substation_Bekasi.pdf",
+                    filePath: "/documents/sld-bekasi.pdf",
+                    status: Status.approved,
+                    overallDeadline: "2024-10-12",
+                    documentType: ApprovalType.protection,
+                    submittedBy: {
+                        id: 3,
+                        email: "buana.teknik@example.com",
+                        name: "PT Buana Teknik",
+                        role: Role.Vendor
+                    },
+                    submittedById: 3,
+                    reviewedBy: {
+                        id: 2,
+                        email: "technical@pln.co.id",
+                        name: "Citra Technical Team",
+                        role: Role.Engineer
+                    },
+                    reviewedById: 2,
+                    createdAt: "2024-09-28",
+                    updatedAt: "2024-09-30",
+                    version: 1,
+                    remarks: "Diagram sudah sesuai dengan requirement",
+                    approvals: [
+                        {
+                            id: 2,
+                            documentId: 4,
+                            type: ApprovalType.protection,
+                            approvedBy: {
+                                id: 2,
+                                email: "technical@pln.co.id",
+                                name: "Citra Technical Team",
+                                role: Role.Engineer
+                            },
+                            approvedById: 2,
+                            status: Status.approved,
+                            notes: "Diagram sudah sesuai dengan requirement",
+                            deadline: "2024-10-12",
+                            createdAt: "2024-09-30",
+                            updatedAt: "2024-09-30"
+                        }
+                    ],
+                    progress: "Approved"
                 }
             ]
         }
     ];
 
-    const filteredVendors = vendorApprovals.filter(vendor => {
-        const matchesSearch = vendor.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            vendor.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            vendor.projectTitle.toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredVendors = vendorData.filter(vendor => {
+        const matchesSearch = vendor.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            vendor.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            vendor.description.toLowerCase().includes(searchTerm.toLowerCase());
         
         if (filterStatus === "all") return matchesSearch;
         
-        const hasMatchingDrawings = vendor.drawings.some(drawing => drawing.status === filterStatus);
-        return matchesSearch && hasMatchingDrawings;
+        const hasMatchingDocuments = vendor.documents.some(doc => doc.status === filterStatus);
+        return matchesSearch && hasMatchingDocuments;
     });
+
+    // Helper functions untuk menghitung dokumen berdasarkan status
+    const getDocumentCounts = (documents: Document[]) => {
+        return {
+            total: documents.length,
+            pending: documents.filter(doc => 
+                doc.status === Status.submitted || 
+                doc.status === Status.inReviewConsultant ||
+                doc.status === Status.inReviewEngineering ||
+                doc.status === Status.inReviewManager
+            ).length,
+            approved: documents.filter(doc => 
+                doc.status === Status.approved || 
+                doc.status === Status.approvedWithNotes
+            ).length,
+            rejected: documents.filter(doc => doc.status === Status.rejected).length
+        };
+    };
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
@@ -264,13 +262,38 @@ export default function ApprovalPage() {
         }
     };
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (status: Status) => {
         switch (status) {
-            case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'approved': return 'bg-green-100 text-green-800';
-            case 'rejected': return 'bg-red-100 text-red-800';
-            case 'revision_needed': return 'bg-orange-100 text-orange-800';
+            case Status.submitted:
+            case Status.inReviewConsultant:
+            case Status.inReviewEngineering:
+            case Status.inReviewManager:
+                return 'bg-yellow-100 text-yellow-800';
+            case Status.approved:
+            case Status.approvedWithNotes:
+                return 'bg-green-100 text-green-800';
+            case Status.rejected:
+                return 'bg-red-100 text-red-800';
+            case Status.returnForCorrection:
+                return 'bg-orange-100 text-orange-800';
+            case Status.overdue:
+                return 'bg-purple-100 text-purple-800';
             default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const getStatusText = (status: Status) => {
+        switch (status) {
+            case Status.submitted: return 'Submitted';
+            case Status.inReviewConsultant: return 'In Review Consultant';
+            case Status.inReviewEngineering: return 'In Review Engineering';
+            case Status.inReviewManager: return 'In Review Manager';
+            case Status.approved: return 'Approved';
+            case Status.approvedWithNotes: return 'Approved with Notes';
+            case Status.returnForCorrection: return 'Return for Correction';
+            case Status.rejected: return 'Rejected';
+            case Status.overdue: return 'Overdue';
+            default: return status;
         }
     };
 
@@ -283,114 +306,127 @@ export default function ApprovalPage() {
         }
     };
 
-    const handleVendorClick = (vendor: VendorApproval) => {
+    const handleVendorClick = (vendor: VendorData) => {
         setSelectedVendor(vendor);
     };
 
     const handleBackToVendors = () => {
         setSelectedVendor(null);
-        setSelectedDrawing(null);
+        setSelectedDocument(null);
     };
 
-    const handleApproveDrawing = (drawing: DrawingDocument) => {
-        setSelectedDrawing(drawing);
+    const handleApproveDocument = (document: Document) => {
+        setSelectedDocument(document);
         setShowConfirmApprovalModal(true);
     };
 
     const handleConfirmApproval = () => {
-        if (selectedDrawing && selectedVendor) {
-            // Direct approval after confirmation
-            const updatedDrawings = selectedVendor.drawings.map(d => 
-                d.id === selectedDrawing.id 
+        if (selectedDocument && selectedVendor) {
+            // Update document status
+            const updatedDocuments = selectedVendor.documents.map(doc => 
+                doc.id === selectedDocument.id 
                     ? { 
-                        ...d, 
-                        status: "approved" as const,
-                        reviewNotes: "Approved by Technical Team PLN",
-                        reviewDate: new Date().toISOString().split('T')[0],
-                        reviewedBy: "Technical Team PLN"
+                        ...doc, 
+                        status: Status.approved,
+                        remarks: "Approved by Technical Team PLN",
+                        updatedAt: new Date().toISOString().split('T')[0],
+                        reviewedBy: {
+                            id: 2,
+                            email: "technical@pln.co.id",
+                            name: "Technical Team PLN",
+                            role: Role.Engineer
+                        },
+                        reviewedById: 2
                     }
-                    : d
+                    : doc
             );
             
             setSelectedVendor({
                 ...selectedVendor,
-                drawings: updatedDrawings,
-                approvedDocuments: selectedVendor.approvedDocuments + 1,
-                pendingDocuments: selectedVendor.pendingDocuments - 1
+                documents: updatedDocuments
             });
             
             setShowConfirmApprovalModal(false);
-            setSelectedDrawing(null);
+            setSelectedDocument(null);
         }
     };
 
-    const handleApproveWithNotesDrawing = (drawing: DrawingDocument) => {
-        setSelectedDrawing(drawing);
+    const handleApproveWithNotesDocument = (document: Document) => {
+        setSelectedDocument(document);
         setApprovalWithNotes("");
         setShowApprovalWithNotesModal(true);
     };
 
-    const handleRejectDrawing = (drawing: DrawingDocument) => {
-        setSelectedDrawing(drawing);
+    const handleRejectDocument = (document: Document) => {
+        setSelectedDocument(document);
         setShowRejectModal(true);
     };
 
     const handleRejectSubmit = () => {
-        if (selectedDrawing && selectedVendor) {
-            // Update drawing status
-            const updatedDrawings = selectedVendor.drawings.map(drawing => 
-                drawing.id === selectedDrawing.id 
+        if (selectedDocument && selectedVendor) {
+            // Update document status
+            const updatedDocuments = selectedVendor.documents.map(doc => 
+                doc.id === selectedDocument.id 
                     ? { 
-                        ...drawing, 
-                        status: "rejected" as const,
-                        reviewNotes: rejectReason,
-                        reviewDate: new Date().toISOString().split('T')[0],
-                        reviewedBy: "Current User"
+                        ...doc, 
+                        status: Status.rejected,
+                        remarks: rejectReason,
+                        updatedAt: new Date().toISOString().split('T')[0],
+                        reviewedBy: {
+                            id: 2,
+                            email: "technical@pln.co.id",
+                            name: "Current User",
+                            role: Role.Engineer
+                        },
+                        reviewedById: 2
                     }
-                    : drawing
+                    : doc
             );
             
             setSelectedVendor({
                 ...selectedVendor,
-                drawings: updatedDrawings,
-                rejectedDocuments: selectedVendor.rejectedDocuments + 1,
-                pendingDocuments: selectedVendor.pendingDocuments - 1
+                documents: updatedDocuments
             });
             
             setRejectReason("");
             setShowRejectModal(false);
-            setSelectedDrawing(null);
+            setSelectedDocument(null);
         }
     };
 
     const handleApprovalWithNotesSubmit = () => {
-        if (selectedDrawing && selectedVendor && approvalWithNotes.trim()) {
-            // Update drawing status with notes
-            const updatedDrawings = selectedVendor.drawings.map(drawing => 
-                drawing.id === selectedDrawing.id 
+        if (selectedDocument && selectedVendor && approvalWithNotes.trim()) {
+            // Update document status with notes
+            const updatedDocuments = selectedVendor.documents.map(doc => 
+                doc.id === selectedDocument.id 
                     ? { 
-                        ...drawing, 
-                        status: "approved" as const,
-                        reviewNotes: approvalWithNotes,
-                        reviewDate: new Date().toISOString().split('T')[0],
-                        reviewedBy: "Technical Team PLN"
+                        ...doc, 
+                        status: Status.approvedWithNotes,
+                        remarks: approvalWithNotes,
+                        updatedAt: new Date().toISOString().split('T')[0],
+                        reviewedBy: {
+                            id: 2,
+                            email: "technical@pln.co.id",
+                            name: "Technical Team PLN",
+                            role: Role.Engineer
+                        },
+                        reviewedById: 2
                     }
-                    : drawing
+                    : doc
             );
             
             setSelectedVendor({
                 ...selectedVendor,
-                drawings: updatedDrawings,
-                approvedDocuments: selectedVendor.approvedDocuments + 1,
-                pendingDocuments: selectedVendor.pendingDocuments - 1
+                documents: updatedDocuments
             });
             
             setApprovalWithNotes("");
             setShowApprovalWithNotesModal(false);
-            setSelectedDrawing(null);
+            setSelectedDocument(null);
         }
     };
 
+    // Render utama
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
             {/* Header */}
@@ -421,9 +457,9 @@ export default function ApprovalPage() {
                                 <h1 className="text-xs sm:text-sm lg:text-xl font-semibold text-white truncate">
                                     {selectedVendor ? (
                                         <>
-                                            <span className="block sm:hidden">{selectedVendor.vendorName}</span>
-                                            <span className="hidden sm:block lg:hidden">{selectedVendor.vendorName} - Docs</span>
-                                            <span className="hidden lg:block">{selectedVendor.vendorName} - Documents</span>
+                                            <span className="block sm:hidden">{selectedVendor.user.name}</span>
+                                            <span className="hidden sm:block lg:hidden">{selectedVendor.user.name} - Docs</span>
+                                            <span className="hidden lg:block">{selectedVendor.user.name} - Documents</span>
                                         </>
                                     ) : (
                                         <>
@@ -471,7 +507,7 @@ export default function ApprovalPage() {
                         {/* Page Header */}
                         <div className="mb-4 sm:mb-6 p-4 sm:p-6 bg-white/80 backdrop-blur-sm rounded-xl shadow-md border border-white/20">
                             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Technical Approval Dashboard</h2>
-                            <p className="text-gray-700 text-sm sm:text-base">Review dan approve drawings dari vendor berdasarkan project</p>
+                            <p className="text-gray-700 text-sm sm:text-base">Review dan approve documents dari vendor berdasarkan project</p>
                         </div>
 
                         {/* Search and Filter */}
@@ -480,7 +516,7 @@ export default function ApprovalPage() {
                                 <div className="relative flex-1">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                                     <Input
-                                        placeholder="Cari vendor, company, atau project..."
+                                        placeholder="Cari vendor, project, atau description..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         className="pl-10 bg-white text-gray-900"
@@ -494,9 +530,10 @@ export default function ApprovalPage() {
                                         className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm sm:text-base min-w-32"
                                     >
                                         <option value="all">Semua Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="rejected">Rejected</option>
+                                        <option value={Status.submitted}>Submitted</option>
+                                        <option value={Status.inReviewEngineering}>In Review</option>
+                                        <option value={Status.approved}>Approved</option>
+                                        <option value={Status.rejected}>Rejected</option>
                                     </select>
                                 </div>
                             </div>
@@ -504,9 +541,11 @@ export default function ApprovalPage() {
 
                         {/* Vendor Cards */}
                         <div className="space-y-4 sm:space-y-6">
-                            {filteredVendors.map((vendor) => (
+                            {filteredVendors.map((vendor) => {
+                                const counts = getDocumentCounts(vendor.documents);
+                                return (
                                 <Card 
-                                    key={vendor.id} 
+                                    key={vendor.user.id} 
                                     className="overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 bg-white/95 backdrop-blur-sm border border-white/30 cursor-pointer hover:scale-[1.02]"
                                     onClick={() => handleVendorClick(vendor)}
                                 >
@@ -514,7 +553,7 @@ export default function ApprovalPage() {
                                         <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
                                             <div className="flex-1 w-full">
                                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3">
-                                                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">{vendor.vendorName}</h3>
+                                                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">{vendor.user.name}</h3>
                                                     <Badge className={`${getPriorityColor(vendor.priority)} whitespace-nowrap`}>
                                                         {vendor.priority.toUpperCase()} Priority
                                                     </Badge>
@@ -523,7 +562,7 @@ export default function ApprovalPage() {
                                                 <div className="space-y-2 mb-4">
                                                     <div className="flex items-center gap-2 text-sm text-gray-600">
                                                         <Building className="w-4 h-4 text-[#14a2ba]" />
-                                                        <span>{vendor.company}</span>
+                                                        <span>{vendor.user.email}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm text-gray-600">
                                                         <FolderOpen className="w-4 h-4 text-[#14a2ba]" />
@@ -531,7 +570,7 @@ export default function ApprovalPage() {
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm text-gray-600">
                                                         <Calendar className="w-4 h-4 text-[#14a2ba]" />
-                                                        <span>Submitted: {vendor.submissionDate} | Deadline: {vendor.reviewDeadline}</span>
+                                                        <span>Deadline: {vendor.reviewDeadline}</span>
                                                     </div>
                                                 </div>
                                                 
@@ -541,19 +580,19 @@ export default function ApprovalPage() {
                                             <div className="w-full lg:w-auto lg:min-w-[300px]">
                                                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 mb-4">
                                                     <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                                                        <div className="text-lg sm:text-xl font-bold text-blue-600">{vendor.totalDocuments}</div>
+                                                        <div className="text-lg sm:text-xl font-bold text-blue-600">{counts.total}</div>
                                                         <div className="text-xs text-blue-700">Total</div>
                                                     </div>
                                                     <div className="text-center p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg">
-                                                        <div className="text-lg sm:text-xl font-bold text-yellow-600">{vendor.pendingDocuments}</div>
+                                                        <div className="text-lg sm:text-xl font-bold text-yellow-600">{counts.pending}</div>
                                                         <div className="text-xs text-yellow-700">Pending</div>
                                                     </div>
                                                     <div className="text-center p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                                                        <div className="text-lg sm:text-xl font-bold text-green-600">{vendor.approvedDocuments}</div>
+                                                        <div className="text-lg sm:text-xl font-bold text-green-600">{counts.approved}</div>
                                                         <div className="text-xs text-green-700">Approved</div>
                                                     </div>
                                                     <div className="text-center p-3 bg-gradient-to-br from-red-50 to-red-100 rounded-lg">
-                                                        <div className="text-lg sm:text-xl font-bold text-red-600">{vendor.rejectedDocuments}</div>
+                                                        <div className="text-lg sm:text-xl font-bold text-red-600">{counts.rejected}</div>
                                                         <div className="text-xs text-red-700">Rejected</div>
                                                     </div>
                                                 </div>
@@ -566,14 +605,14 @@ export default function ApprovalPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            ))}
+                            )})}
                         </div>
 
                         {filteredVendors.length === 0 && (
                             <Card className="shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
                                 <CardContent className="p-8 sm:p-12 text-center">
                                     <div className="text-gray-400 mb-4">
-                                        <User className="w-12 h-12 sm:w-16 sm:h-16 mx-auto" />
+                                        {/* <User className="w-12 h-12 sm:w-16 sm:h-16 mx-auto" /> */}
                                     </div>
                                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">No vendors found</h3>
                                     <p className="text-gray-600 text-sm sm:text-base">
@@ -584,14 +623,14 @@ export default function ApprovalPage() {
                         )}
                     </>
                 ) : (
-                    // Drawing Documents View
+                    // Documents View
                     <>
                         {/* Vendor Info Header */}
                         <div className="mb-4 sm:mb-6 p-4 sm:p-6 bg-white/80 backdrop-blur-sm rounded-xl shadow-md border border-white/20">
                             <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                                 <div>
-                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{selectedVendor.vendorName}</h2>
-                                    <p className="text-gray-600 mb-2">{selectedVendor.company}</p>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{selectedVendor.user.name}</h2>
+                                    <p className="text-gray-600 mb-2">{selectedVendor.user.email}</p>
                                     <p className="text-gray-700 font-medium">{selectedVendor.projectTitle}</p>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -607,38 +646,47 @@ export default function ApprovalPage() {
 
                         {/* Documents List */}
                         <div className="space-y-4 sm:space-y-6">
-                            {selectedVendor.drawings.map((drawing) => (
-                                <Card key={drawing.id} className="overflow-hidden shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
+                            {selectedVendor.documents.map((document) => (
+                                <Card key={document.id} className="overflow-hidden shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
                                     <CardContent className="p-4 sm:p-6">
                                         <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
                                             <div className="flex-1 w-full">
                                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3">
-                                                    <h4 className="text-lg font-bold text-gray-900">{drawing.fileName}</h4>
-                                                    <Badge className={`${getStatusColor(drawing.status)} whitespace-nowrap`}>
-                                                        {drawing.status.toUpperCase()}
+                                                    <h4 className="text-lg font-bold text-gray-900">{document.name}</h4>
+                                                    <Badge className={`${getStatusColor(document.status)} whitespace-nowrap`}>
+                                                        {getStatusText(document.status)}
                                                     </Badge>
+                                                    {document.documentType && (
+                                                        <Badge variant="outline" className="whitespace-nowrap">
+                                                            {document.documentType}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 text-sm text-gray-600">
                                                     <div className="flex items-center gap-2">
                                                         <FileText className="w-4 h-4 text-[#14a2ba]" />
-                                                        <span>{drawing.fileSize} • {drawing.fileType}</span>
+                                                        <span>{document.filePath.split('.').pop()?.toUpperCase()} • {document.updatedAt}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Calendar className="w-4 h-4 text-[#14a2ba]" />
-                                                        <span>Uploaded: {drawing.uploadDate}</span>
+                                                        <span>Created: {document.createdAt}</span>
                                                     </div>
                                                 </div>
                                                 
-                                                <p className="text-gray-700 text-sm leading-relaxed mb-3">{drawing.description}</p>
+                                                {document.progress && (
+                                                    <p className="text-gray-700 text-sm leading-relaxed mb-3">Progress: {document.progress}</p>
+                                                )}
                                                 
-                                                {drawing.reviewNotes && (
+                                                {document.remarks && (
                                                     <div className="p-3 bg-gray-50 rounded-lg border-l-4 border-[#14a2ba]">
-                                                        <p className="text-sm text-gray-700 mb-1"><strong>Review Notes:</strong></p>
-                                                        <p className="text-sm text-gray-600">{drawing.reviewNotes}</p>
-                                                        <p className="text-xs text-gray-500 mt-2">
-                                                            Reviewed by {drawing.reviewedBy} on {drawing.reviewDate}
-                                                        </p>
+                                                        <p className="text-sm text-gray-700 mb-1"><strong>Remarks:</strong></p>
+                                                        <p className="text-sm text-gray-600">{document.remarks}</p>
+                                                        {document.reviewedBy && document.updatedAt && (
+                                                            <p className="text-xs text-gray-500 mt-2">
+                                                                Reviewed by {document.reviewedBy.name} on {document.updatedAt}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -647,17 +695,18 @@ export default function ApprovalPage() {
                                                 <div className="flex flex-col gap-2">
                                                     <Button className="w-full bg-[#125d72] hover:bg-[#14a2ba] text-white text-sm">
                                                         <Eye className="w-4 h-4 mr-2" />
-                                                        Preview PDF
+                                                        Preview Document
                                                     </Button>
                                                     <Button className="w-full bg-gray-500 hover:bg-gray-600 text-white text-sm">
                                                         <Download className="w-4 h-4 mr-2" />
                                                         Download
                                                     </Button>
                                                     
-                                                    {drawing.status === "pending" && (
+                                                    {(document.status === Status.submitted || 
+                                                      document.status === Status.inReviewEngineering) && (
                                                         <>
                                                             <Button 
-                                                                onClick={() => handleApproveDrawing(drawing)}
+                                                                onClick={() => handleApproveDocument(document)}
                                                                 className="w-full bg-green-600 hover:bg-green-700 text-white text-sm"
                                                             >
                                                                 <CheckCircle className="w-4 h-4 mr-2" />
@@ -665,7 +714,7 @@ export default function ApprovalPage() {
                                                             </Button>
                                                             
                                                             <Button 
-                                                                onClick={() => handleApproveWithNotesDrawing(drawing)}
+                                                                onClick={() => handleApproveWithNotesDocument(document)}
                                                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm mt-2"
                                                             >
                                                                 <MessageSquare className="w-4 h-4 mr-2" />
@@ -673,7 +722,7 @@ export default function ApprovalPage() {
                                                             </Button>
                                                             
                                                             <Button 
-                                                                onClick={() => handleRejectDrawing(drawing)}
+                                                                onClick={() => handleRejectDocument(document)}
                                                                 className="w-full bg-red-600 hover:bg-red-700 text-white text-sm mt-2"
                                                             >
                                                                 <XCircle className="w-4 h-4 mr-2" />
@@ -703,27 +752,27 @@ export default function ApprovalPage() {
                             Konfirmasi Approval
                         </DialogTitle>
                         <DialogDescription className="text-gray-700 mt-2">
-                            Apakah Anda yakin ingin meng-approve drawing ini?
+                            Apakah Anda yakin ingin meng-approve document ini?
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                        {selectedDrawing && (
+                        {selectedDocument && (
                             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                <h4 className="font-semibold text-gray-900 mb-2">Drawing Details:</h4>
+                                <h4 className="font-semibold text-gray-900 mb-2">Document Details:</h4>
                                 <p className="text-sm text-gray-700 mb-1">
-                                    <strong>File:</strong> {selectedDrawing.fileName}
+                                    <strong>File:</strong> {selectedDocument.name}
                                 </p>
                                 <p className="text-sm text-gray-700 mb-1">
-                                    <strong>Category:</strong> {selectedDrawing.category}
+                                    <strong>Type:</strong> {selectedDocument.documentType || 'N/A'}
                                 </p>
                                 <p className="text-sm text-gray-700">
-                                    <strong>Description:</strong> {selectedDrawing.description}
+                                    <strong>Status:</strong> {getStatusText(selectedDocument.status)}
                                 </p>
                             </div>
                         )}
                         <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
                             <p className="text-sm text-green-700">
-                                <strong>⚠️ Perhatian:</strong> Setelah di-approve, drawing ini akan dikembalikan ke vendor dengan status approved dan tidak dapat diubah lagi.
+                                <strong>⚠️ Perhatian:</strong> Setelah di-approve, document ini akan dikembalikan ke vendor dengan status approved dan tidak dapat diubah lagi.
                             </p>
                         </div>
                     </div>
@@ -739,7 +788,7 @@ export default function ApprovalPage() {
                             className="bg-green-600 hover:bg-green-700 text-white"
                         >
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            Ya, Approve Drawing
+                            Ya, Approve Document
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -753,11 +802,11 @@ export default function ApprovalPage() {
                             <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
                                 <XCircle className="w-4 h-4 text-white" />
                             </div>
-                            Reject Drawing
+                            Reject Document
                         </DialogTitle>
                         <DialogDescription className="text-gray-700 mt-2">
-                            {selectedDrawing && (
-                                <>Reject drawing: <strong className="text-gray-900">{selectedDrawing.fileName}</strong></>
+                            {selectedDocument && (
+                                <>Reject document: <strong className="text-gray-900">{selectedDocument.name}</strong></>
                             )}
                         </DialogDescription>
                     </DialogHeader>
@@ -766,7 +815,7 @@ export default function ApprovalPage() {
                             <Label htmlFor="reject-reason" className="text-gray-900 font-semibold">Rejection Reason *</Label>
                             <Textarea
                                 id="reject-reason"
-                                placeholder="Jelaskan alasan penolakan drawing ini..."
+                                placeholder="Jelaskan alasan penolakan document ini..."
                                 value={rejectReason}
                                 onChange={(e) => setRejectReason(e.target.value)}
                                 className="min-h-[100px] border-red-200 focus:ring-red-500 focus:border-red-500 bg-white shadow-sm"
@@ -783,7 +832,7 @@ export default function ApprovalPage() {
                             className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
                         >
                             <XCircle className="w-4 h-4 mr-2" />
-                            Reject Drawing
+                            Reject Document
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -797,11 +846,11 @@ export default function ApprovalPage() {
                             <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                                 <MessageSquare className="w-4 h-4 text-white" />
                             </div>
-                            Approve Drawing with Notes
+                            Approve Document with Notes
                         </DialogTitle>
                         <DialogDescription className="text-gray-700 mt-2">
-                            {selectedDrawing && (
-                                <>Approve drawing: <strong className="text-gray-900">{selectedDrawing.fileName}</strong> with additional notes</>
+                            {selectedDocument && (
+                                <>Approve document: <strong className="text-gray-900">{selectedDocument.name}</strong> with additional notes</>
                             )}
                         </DialogDescription>
                     </DialogHeader>
@@ -818,7 +867,7 @@ export default function ApprovalPage() {
                         </div>
                         <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                             <p className="text-sm text-blue-700">
-                                <strong>Info:</strong> Drawing akan di-approve dengan catatan tambahan yang akan dikirim ke vendor sebagai informasi penting.
+                                <strong>Info:</strong> Document akan di-approve dengan catatan tambahan yang akan dikirim ke vendor sebagai informasi penting.
                             </p>
                         </div>
                     </div>
