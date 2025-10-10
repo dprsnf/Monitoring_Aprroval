@@ -78,6 +78,7 @@ export interface ApiErrorResponse{
 export interface FormErrors {
   email?: string;
   password?: string;
+  name?: string;
 }
 
 

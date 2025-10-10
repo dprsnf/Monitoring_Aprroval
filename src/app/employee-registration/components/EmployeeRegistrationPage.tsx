@@ -2,96 +2,134 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, User, Lock, Mail, Building, ArrowLeft } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Eye, EyeOff, User, Lock, Mail, Building, Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import api from "@/lib/axios";
+import { isAxiosError } from "axios";
+import { useRouter } from "next/navigation";
+import { ApiErrorResponse, FormErrors } from "@/app/types";
 
-export default function EmployeeRegistrationPage() {
+export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [apiError, setApiError] = useState("");
   const [formData, setFormData] = useState({
-    namaLengkap: "",
+    name: "",
     email: "",
-    divisi: "",
+    division: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const router = useRouter();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Registration data:", formData);
+    setApiError("");
+    setFormErrors({});
+    setIsLoading(true);
+
+    if (formData.password !== formData.confirmPassword) {
+      setApiError("Password dan konfirmasi password tidak cocok.");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await api.post("/auth/register", {
+        name: formData.name,
+        email: formData.email,
+        division: formData.division,
+        password: formData.password,
+      });
+
+      router.push("/login");
+    } catch (error: unknown) {
+      if (isAxiosError<ApiErrorResponse>(error)) {
+        const message = error.response?.data?.message || "Terjadi kesalahan pada server.";
+        setApiError(message);
+      } else {
+        setApiError("Terjadi kesalahan yang tidak terduga. Silakan coba lagi.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-blue-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        {/* Back Button */}
-        <div className="mb-8">
-          <Link 
-            href="/login" 
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Kembali ke Login
-          </Link>
-        </div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* glossy effect animation */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%)",
+          width: "200%",
+          height: "200%",
+          top: "-50%",
+          left: "-100%",
+          transform: "rotate(45deg)",
+        }}
+        animate={{ x: ["0%", "100%"] }}
+        transition={{ duration: 3, repeat: Infinity, repeatDelay: 2, ease: "easeInOut" }}
+      />
 
-        {/* PLN Logo and Branding */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100 p-3">
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Logo_PLN.png/960px-Logo_PLN.png" 
-                alt="PLN Logo"
-                className="w-full h-full object-contain"
-              />
+      {/* Main Card */}
+      <motion.div
+        className="w-full max-w-xl z-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <Card className="bg-white border border-gray-200 shadow-xl">
+          <div className="text-center">
+            <div className="flex justify-center mb-4">
+              <Image src="/Logo_PLN.svg" alt="PLN Logo" height={70} width={125} />
             </div>
+            <h1 className="text-xl font-bold mb-2">Daftar Akun Baru</h1>
+            <p className="text-sm">Lengkapi data di bawah untuk membuat akun</p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Daftar Akun PLN
-          </h1>
-          <p className="text-gray-600 text-sm">
-            Sistem Monitoring & Approval Drawing
-          </p>
-        </div>
 
-        {/* Registration Card */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader className="text-center pb-6">
-            <CardTitle className="text-xl font-semibold text-gray-900">
-              Registrasi Pegawai
-            </CardTitle>
-            <CardDescription className="text-gray-600">
-              Lengkapi data berikut untuk membuat akun
-            </CardDescription>
-          </CardHeader>
+          <CardContent className="px-8">
+            <form onSubmit={handleSubmit} className="space-y-2">
+              {apiError && (
+                <div className="bg-red-500 text-white px-4 py-3 rounded-md text-sm text-center">
+                  {apiError}
+                </div>
+              )}
 
-          <CardContent className="px-6 pb-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Nama Lengkap */}
               <div className="space-y-2">
-                <label htmlFor="namaLengkap" className="text-sm font-medium text-gray-700">
-                  Nama Lengkap *
+                <label
+                  htmlFor="name"
+                  className={cn(
+                    "font-semibold mb-2 block text-sm",
+                    formErrors.name ? "text-red-500" : "text-[#354052]"
+                  )}
+                >
+                  Nama Lengkap
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-4 w-4 text-gray-400" />
-                  </div>
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                   <input
-                    id="namaLengkap"
-                    name="namaLengkap"
+                    id="name"
+                    name="name"
                     type="text"
                     required
-                    value={formData.namaLengkap}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 transition-colors duration-200"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
                     placeholder="Masukkan nama lengkap"
                   />
                 </div>
@@ -99,86 +137,88 @@ export default function EmployeeRegistrationPage() {
 
               {/* Email */}
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  Email PLN *
+                <label
+                  htmlFor="email"
+                  className={cn(
+                    "font-semibold mb-2 block text-sm",
+                    formErrors.email ? "text-red-500" : "text-[#354052]"
+                  )}
+                >
+                  Email
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                  </div>
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                   <input
                     id="email"
                     name="email"
                     type="email"
                     required
                     value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 transition-colors duration-200"
-                    placeholder="nama@pln.co.id"
+                    onChange={handleChange}
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
+                    placeholder="Masukkan email PLN"
                   />
                 </div>
               </div>
 
-              {/* Manager/Divisi */}
+              {/* Divisi */}
               <div className="space-y-2">
-                <label htmlFor="divisi" className="text-sm font-medium text-gray-700">
-                  Manager/Divisi *
+                <label
+                  htmlFor="divisi"
+                  className="font-semibold mb-2 block text-[#354052] text-sm"
+                >
+                  Divisi
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Building className="h-4 w-4 text-gray-400" />
-                  </div>
+                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                   <select
-                    id="divisi"
-                    name="divisi"
+                    id="division"
+                    name="division"
                     required
-                    value={formData.divisi}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 transition-colors duration-200"
+                    value={formData.division}
+                    onChange={handleChange}
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 bg-white"
                   >
                     <option value="">Pilih Divisi</option>
-                    <option value="Engineering">Engineering</option>
-                    <option value="Operations">Operations</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="Planning">Planning</option>
-                    <option value="Information Technology">Information Technology</option>
-                    <option value="Human Resources">Human Resources</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Procurement">Procurement</option>
-                    <option value="Legal & Compliance">Legal & Compliance</option>
-                    <option value="Safety & Environment">Safety & Environment</option>
+                    <option value="Dalkon">Dalkon</option>
+                    <option value="Engineer">Engineer</option>
                   </select>
                 </div>
               </div>
 
-              {/* Password */}
+              <div className="flex flex-row space-x-3">
+                {/* Password */}
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  Password *
+                <label
+                  htmlFor="password"
+                  className={cn(
+                    "font-semibold mb-2 block text-sm",
+                    formErrors.password ? "text-red-500" : "text-[#354052]"
+                  )}
+                >
+                  Password
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-4 w-4 text-gray-400" />
-                  </div>
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                   <input
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
                     required
                     value={formData.password}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 transition-colors duration-200"
+                    onChange={handleChange}
+                    className="w-full pl-10 pr-12 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
                     placeholder="Minimal 8 karakter"
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors" />
+                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors" />
+                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
                     )}
                   </button>
                 </div>
@@ -186,51 +226,54 @@ export default function EmployeeRegistrationPage() {
 
               {/* Konfirmasi Password */}
               <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
-                  Konfirmasi Password *
+                <label
+                  htmlFor="confirmPassword"
+                  className="font-semibold mb-2 block text-[#354052] text-sm"
+                >
+                  Konfirmasi Password
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-4 w-4 text-gray-400" />
-                  </div>
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
+                    type={showConfirm ? "text" : "password"}
                     required
                     value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 transition-colors duration-200"
+                    onChange={handleChange}
+                    className="w-full pl-10 pr-12 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
                     placeholder="Ulangi password"
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors" />
+                    {showConfirm ? (
+                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors" />
+                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
                     )}
                   </button>
                 </div>
               </div>
+              </div>
 
-              {/* Register Button */}
-              <button
+              {/* Tombol Submit */}
+              <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm mt-6"
+                className="w-full bg-[#14a2ba] hover:bg-[#11889d] text-white font-semibold mt-3 py-5 px-4 rounded-lg transition-all duration-200"
               >
-                Daftar Sekarang
-              </button>
+                <div className="flex items-center justify-center gap-2">
+                  {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "DAFTAR"}
+                </div>
+              </Button>
 
-              {/* Login Link */}
-              <div className="text-center pt-4">
+              <div className="text-center">
                 <p className="text-sm text-gray-600">
-                  Sudah memiliki akun?{" "}
-                  <Link 
-                    href="/login" 
+                  Sudah punya akun?{" "}
+                  <Link
+                    href="/login"
                     className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
                   >
                     Masuk di sini
@@ -240,14 +283,7 @@ export default function EmployeeRegistrationPage() {
             </form>
           </CardContent>
         </Card>
-
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-xs text-gray-500">
-            © 2025 PT PLN (Persero). All rights reserved.
-          </p>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
