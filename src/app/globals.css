@@ -1,26 +1,84 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-md: 0.625rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* === LIGHT THEME (DEFAULT) === */
+:root {
+  --background: #e7f6f9; /* background PLN */
+  --foreground: #125d72; /* teks utama */
+
+  --card: #ffffff;
+  --card-foreground: #125d72;
+
+  --primary: #14a2ba; /* biru muda PLN */
+  --primary-foreground: #ffffff;
+
+  --secondary: #efe62f; /* kuning PLN */
+  --secondary-foreground: #125d72;
+
+  --muted: #d9d9d9; /* abu PLN */
+  --muted-foreground: #125d72;
+
+  --accent: #125d72; /* biru tua PLN */
+  --accent-foreground: #ffffff;
+
+  --border: #d9d9d9;
+  --input: #d9d9d9;
+  --ring: #14a2ba;
+
+  --radius: 0.625rem;
+}
+
+/* === DARK THEME === */
+.dark {
+  --background: #125d72;
+  --foreground: #e7f6f9;
+
+  --card: #0e485a;
+  --card-foreground: #e7f6f9;
+
+  --primary: #14a2ba;
+  --primary-foreground: #ffffff;
+
+  --secondary: #efe62f;
+  --secondary-foreground: #125d72;
+
+  --muted: #0d3b4a;
+  --muted-foreground: #e7f6f9;
+
+  --accent: #14a2ba;
+  --accent-foreground: #ffffff;
+
+  --border: #0e485a;
+  --input: #0e485a;
+  --ring: #14a2ba;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+  }
 }
