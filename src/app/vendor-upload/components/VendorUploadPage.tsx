@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Header from "@/components/Header";
 import { ChevronLeft, Upload, Wallet, User, ChevronDown, LogOut, Check, AlertCircle, Plus, Trash2, Eye, Download } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { Role, User as UserType } from "@/app/types";
 
 
 interface UploadedFile {
@@ -27,6 +28,13 @@ interface UploadedFile {
     status: "uploading" | "completed" | "error";
     progress?: number;
 }
+
+const currentUser: UserType = {
+    id: 1,
+    email: "budi.santoso@pln.co.id",
+    name: "Budi Santoso",
+    role: Role.Manager
+};
 
 export default function VendorUploadPage() {
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -214,58 +222,7 @@ export default function VendorUploadPage() {
     return (
         <div className="min-h-screen bg-[#14a2ba]">
             {/* Header */}
-            <header className="bg-gradient-to-r from-[#125d72] to-[#14a2ba] shadow-lg">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center gap-2 sm:gap-4">
-                            <Link href="/">
-                                <Button className="group bg-[#efe62f] hover:bg-[#14a2ba] border border-white/20 text-gray-900 shadow-sm hover:shadow-md transition-all duration-200">
-                                    <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-gray-900 group-hover:text-white" />
-                                    <div className="text-xs sm:text-sm font-medium group-hover:text-white">
-                                        <span className="hidden sm:inline">Kembali ke Dashboard</span>
-                                        <span className="sm:hidden">Dashboard</span>
-                                    </div>
-                                </Button>
-                            </Link>
-                            <div className="h-8 w-px bg-blue-300"></div>
-                            <h1 className="text-sm sm:text-xl font-semibold text-white">
-                                Upload Drawing
-                            </h1>
-                        </div>
-
-                        <div className="flex items-center gap-2 sm:gap-4">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button className="group flex items-center gap-1 sm:gap-3 bg-[#efe62f] hover:bg-[#125d72] border border-white/20 rounded-lg px-2 sm:px-3 py-2 transition-all duration-200 h-auto text-white shadow-sm hover:shadow-md">
-                                        <div className="text-xs sm:text-sm text-gray-900 font-medium group-hover:text-white">
-                                            <span className="hidden sm:inline">Nama Pengguna</span>
-                                            <span className="sm:hidden">User</span>
-                                        </div>
-                                        <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-900 group-hover:text-white" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-
-                                <DropdownMenuContent align="end" className="w-56 bg-white border border-gray-100 shadow-xl rounded-lg">
-                                    <DropdownMenuLabel>
-                                        <div className="py-1">
-                                            <p className="text-sm font-semibold text-gray-900">Nama Pengguna</p>
-                                            <p className="text-xs text-blue-600">user@pln.co.id</p>
-                                        </div>
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator className="bg-blue-100" />
-                                    <DropdownMenuItem
-                                        className="hover:bg-red-50 cursor-pointer transition-all duration-200 focus:bg-red-100 mx-1 my-1 rounded-md"
-                                        onClick={() => console.log("Logout clicked")}
-                                    >
-                                        <LogOut className="mr-2 h-4 w-4 text-red-600" />
-                                        <span className="font-medium text-red-600">Keluar</span>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <Header currentUser={currentUser} />
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -281,7 +238,7 @@ export default function VendorUploadPage() {
                             <CardTitle className="text-black font-semibold text-lg drop-shadow-sm">Informasi Proyek</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="projectTitle" className="text-gray-900 font-medium">
                                         Judul Proyek *
@@ -292,7 +249,7 @@ export default function VendorUploadPage() {
                                         required
                                         value={formData.projectTitle}
                                         onChange={handleInputChange}
-                                        placeholder="Contoh: Single Line Diagram - Gardu Induk Cibinong"
+                                        placeholder="Contoh: Single Line Diagram - Gardu Induk Sawangan"
                                         className="w-full px-3 py-2 text-black border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
                                     />
                                 </div>
@@ -307,7 +264,7 @@ export default function VendorUploadPage() {
                                         required
                                         value={formData.category}
                                         onChange={handleInputChange}
-                                        placeholder="Contoh: Single Line Diagram - Gardu Induk Cibinong"
+                                        placeholder="Contoh: Single Line Diagram - Gardu Induk Sawangan"
                                         className="w-full px-3 py-2 text-black border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
                                     />
                                 </div>
@@ -326,9 +283,7 @@ export default function VendorUploadPage() {
                                         className="w-full px-3 py-2 text-black border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
                                     />
                                 </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="noContract" className="text-gray-900 font-medium">
                                         No. Kontrak *
@@ -346,8 +301,6 @@ export default function VendorUploadPage() {
                             </div>
                         </CardContent>
                     </Card>
-
-
 
                     {/* File Upload */}
                     <Card className="shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
@@ -564,16 +517,6 @@ export default function VendorUploadPage() {
                                             <p className="text-xs sm:text-sm text-gray-700">
                                                 Semua file sudah berhasil diupload dan siap untuk direview
                                             </p>
-                                        </div>
-                                        <div className="flex gap-2 sm:gap-3">
-                                            <Button
-                                                type="button"
-                                                onClick={proceedToSubmit}
-                                                className="bg-[#efe62f] hover:bg-[#125d72] text-gray-900 hover:text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3"
-                                            >
-                                                <span className="hidden sm:inline">Lanjut ke Submit</span>
-                                                <span className="sm:hidden">Submit</span>
-                                            </Button>
                                         </div>
                                     </div>
                                 </div>
