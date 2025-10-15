@@ -144,21 +144,21 @@ export default function VendorUploadPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <Card className="shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
-            <CardHeader className="px-6 py-4 border-b border-gray-300">
+            <CardHeader className="px-6 border-b border-gray-300">
               <CardTitle className="text-black font-semibold text-lg drop-shadow-sm">Informasi Proyek</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <CardContent className="p-4 sm:p-6">
               <ProjectInfoForm formData={formData} onChange={(e) => handleInputChange(e)} />
             </CardContent>
           </Card>
 
           <Card className="shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
-            <CardHeader className="px-6 py-4 border-b border-gray-300">
+            <CardHeader className="px-6 border-b border-gray-300">
               <CardTitle className="text-black font-semibold text-lg drop-shadow-sm">Upload Drawing Files</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="px-6">
               {!showReviewStep ? (
                 <>
                   <FileDropzone
@@ -204,10 +204,10 @@ export default function VendorUploadPage() {
           </Card>
 
           <Card className="shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
-            <div className="border-b border-gray-300 px-4 sm:px-6 py-3 sm:py-4">
+            <div className="border-b border-gray-300 px-4 sm:px-6 pb-3 sm:pb-4">
               <h3 className="text-black font-semibold text-base sm:text-lg drop-shadow-sm">Catatan Tambahan</h3>
             </div>
-            <CardContent className="p-4 sm:p-6">
+            <CardContent className="">
               <AdditionalNotes notes={formData.notes} onChange={(e) => handleInputChange(e)} />
             </CardContent>
           </Card>

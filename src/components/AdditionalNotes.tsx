@@ -12,9 +12,9 @@ interface AdditionalNotesProps {
 export default function AdditionalNotes({ notes, onChange }: AdditionalNotesProps) {
   return (
     <div className="space-y-2">
-      <Label htmlFor="notes" className="text-gray-900 font-medium text-sm sm:text-base">
+      {/* <Label htmlFor="notes" className="text-gray-900 font-medium text-sm sm:text-base">
         Catatan untuk Reviewer (Opsional)
-      </Label>
+      </Label> */}
       <textarea
         id="notes"
         name="notes"

@@ -12,6 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Header from "@/components/common/Header";
+import { Role } from "./types";
 
 export default function Home() {
   const dashboardItems = [
@@ -57,59 +59,25 @@ export default function Home() {
     },
   ];
 
-  return (
-    <div className="min-h-screen bg-[#14a2ba]">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-[#125d72] to-[#14a2ba] shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center p-2">
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Logo_PLN.png/960px-Logo_PLN.png"
-                  alt="PLN Logo"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <h1 className="text-sm sm:text-xl font-semibold text-white">
-                Dashboard Approval PLN
-              </h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="flex items-center gap-1 sm:gap-3 bg-[#efe62f] hover:bg-[#125d72] border border-white/20 rounded-lg px-2 sm:px-3 py-2 transition-all duration-200 h-auto text-gray-900 hover:text-white shadow-sm hover:shadow-md">
-                    <div className="text-xs sm:text-sm font-medium">
-                      <span className="hidden sm:inline">Nama Pengguna</span>
-                      <span className="sm:hidden">User</span>
-                    </div>
-                    <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
+const currentUser = {
+  id: 0,
+  name: "Guest",
+  email: "guest@example.com",
+  role: Role.Dalkon
+};
 
-                <DropdownMenuContent align="end" className="w-56 bg-white border border-gray-100 shadow-xl rounded-lg">
-                  <DropdownMenuLabel className="bg-gradient-to-r from-[#125d72]/10 to-[#14a2ba]/10 rounded-t-lg">
-                    <div className="py-1">
-                      <p className="text-sm font-semibold text-gray-900">Nama Pengguna</p>
-                      <p className="text-xs text-[#14a2ba]">user@pln.co.id</p>
-                    </div>
-                  </DropdownMenuLabel>
+const handleLogout = () => {
+  console.log("Logout clicked");
+};
 
-                  <DropdownMenuSeparator className="bg-gray-100" />
-
-                  <DropdownMenuItem
-                    className="hover:bg-red-50 cursor-pointer transition-all duration-200 focus:bg-red-100 mx-1 my-1 rounded-md"
-                    onClick={() => console.log("Logout clicked")}
-                  >
-                    <LogOut className="mr-2 h-4 w-4 text-red-600" />
-                    <span className="font-medium text-red-600">Keluar</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
+return (
+  <div className="min-h-screen bg-[#14a2ba]">
+    {/* Header */}
+    <Header
+      currentUser={currentUser}
+      showLogo
+      onLogout={() => handleLogout()}
+    />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
