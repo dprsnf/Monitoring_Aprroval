@@ -26,7 +26,7 @@ export default function Home() {
             Dashboard Approval PLN
           </h2>
           <p className="text-gray-700 text-sm sm:text-lg">
-            PT PLN (Persero) - Sistem Monitoring & Approval Drawing
+            PT PLN (Persero) UPT Manado - Sistem Monitoring & Approval Drawing
           </p>
         </div>
 
