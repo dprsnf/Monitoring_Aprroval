@@ -1,9 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { ChevronLeft, Home, ChevronDown, LogOut } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation";
+import { ChevronLeft, Home, ChevronDown, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,16 +10,17 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import type { User } from "@/app/types"
+} from "@/components/ui/dropdown-menu";
+import type { User } from "@/app/types";
 
 interface HeaderProps {
-  currentUser?: User
-  title?: string
-  backHref?: string
-  backLabel?: string
-  showLogo?: boolean
-  onLogout?: () => void
+  currentUser?: User;
+  title?: string;
+  backHref?: string;
+  backLabel?: string;
+  showLogo?: boolean;
+  onLogout?: () => void;
+  onBack?: () => void; // <-- TAMBAHKAN INI
 }
 
 export default function Header({
@@ -30,35 +30,50 @@ export default function Header({
   backLabel,
   showLogo = false,
   onLogout,
+  onBack, // <-- DESTRUKTUR
 }: HeaderProps) {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleBackOrDashboard = () => {
-    if (backHref) {
-      router.push(backHref)
+    if (onBack) {
+      // Prioritaskan callback kustom dari halaman
+      onBack();
+    } else if (backHref !== undefined && backHref !== null) {
+      // Jika backHref eksplisit diberikan (termasuk string kosong? hindari itu)
+      router.push(backHref);
     } else {
-      router.push("/dashboard")
+      // Fallback ke dashboard
+      router.push("/dashboard");
     }
-  }
+  };
+
+  // Tentukan apakah tombol back/home ditampilkan
+  // Jika onBack atau backHref diberikan → tampilkan tombol
+  // Jika tidak → tetap tampilkan tombol ke dashboard (opsional, bisa diubah)
+  const showBackButton = onBack !== undefined || backHref !== undefined;
 
   return (
     <header className="bg-gradient-to-r from-[#125d72] to-[#14a2ba] shadow-lg">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-            <Button
-              onClick={handleBackOrDashboard}
-              className="bg-[#efe62f] hover:bg-[#125d72] text-gray-900 hover:text-white transition-all duration-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm flex items-center"
-            >
-              {backHref ? (
-                <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              ) : (
-                <Home className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              )}
-              <span className="hidden sm:inline">
-                {backHref ? backLabel ?? "Kembali" : "Dashboard"}
-              </span>
-            </Button>
+            {showBackButton && (
+              <Button
+                onClick={handleBackOrDashboard}
+                className="bg-[#efe62f] hover:bg-[#125d72] text-gray-900 hover:text-white transition-all duration-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm flex items-center"
+              >
+                {onBack || (backHref && backHref.length > 0) ? (
+                  <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                ) : (
+                  <Home className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                )}
+                <span className="hidden sm:inline">
+                  {onBack || (backHref && backHref.length > 0)
+                    ? backLabel ?? "Kembali"
+                    : "Dashboard"}
+                </span>
+              </Button>
+            )}
 
             {title && (
               <>
@@ -115,5 +130,5 @@ export default function Header({
         </div>
       </div>
     </header>
-  )
+  );
 }

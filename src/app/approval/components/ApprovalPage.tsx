@@ -11,8 +11,6 @@ import VendorCard from "./VendorCard";
 import DocumentCard from "./DocumentCard";
 import TechnicalApprovalModal from "./TechnicalApprovalModal";
 import DetailModal from "@/components/modal/DetailModal";
-import TechnicalApprovalHeader from "./TrchnicalApprovalHeader";
-import VendorInfoHeader from "./VendorInfoHeader";
 import Header from "@/components/common/Header";
 
 // Sample data menggunakan type yang sama dengan schema Prisma
@@ -192,16 +190,12 @@ const currentUser: User = {
 
 export default function ApprovalPage() {
   const [selectedVendor, setSelectedVendor] = useState<VendorData | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(
-    null
-  );
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [showApprovalWithNotesModal, setShowApprovalWithNotesModal] =
-    useState(false);
-  const [showConfirmApprovalModal, setShowConfirmApprovalModal] =
-    useState(false);
+  const [showApprovalWithNotesModal, setShowApprovalWithNotesModal] = useState(false);
+  const [showConfirmApprovalModal, setShowConfirmApprovalModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [approvalWithNotes, setApprovalWithNotes] = useState("");
@@ -237,8 +231,7 @@ export default function ApprovalPage() {
           doc.status === Status.approved ||
           doc.status === Status.approvedWithNotes
       ).length,
-      rejected: documents.filter((doc) => doc.status === Status.rejected)
-        .length,
+      rejected: documents.filter((doc) => doc.status === Status.rejected).length,
     };
   };
 
@@ -317,11 +310,6 @@ export default function ApprovalPage() {
   // Event handlers
   const handleVendorClick = (vendor: VendorData) => {
     setSelectedVendor(vendor);
-  };
-
-  const handleBackToVendors = () => {
-    setSelectedVendor(null);
-    setSelectedDocument(null);
   };
 
   const handlePreviewDocument = (document: Document) => {
@@ -430,17 +418,29 @@ export default function ApprovalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
-      <Header
-        currentUser={currentUser}
-        title={
-          selectedVendor
-            ? `Dokumen: ${selectedVendor.projectTitle}`
-            : "Technical Approval Dashboard"
-        }
-        backHref={selectedVendor ? "" : undefined}
-        backLabel={selectedVendor ? "Kembali" : "Dashboard"}
-        showLogo={false}
-      />
+      {/* ✅ Header Dinamis — hanya satu, di luar kondisi */}
+      {selectedDocument ? (
+        <Header
+          currentUser={currentUser}
+          title={`Review: ${selectedDocument.name}`}
+          onBack={() => setSelectedDocument(null)}
+          backLabel="Kembali"
+        />
+      ) : selectedVendor ? (
+        <Header
+          currentUser={currentUser}
+          title={`Dokumen: ${selectedVendor.projectTitle}`}
+          onBack={() => setSelectedVendor(null)}
+          backLabel="Kembali"
+        />
+      ) : (
+        <Header
+          currentUser={currentUser}
+          title="Technical Approval Dashboard"
+          backHref="/"
+          backLabel="kembali"
+        />
+      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {!selectedVendor ? (
@@ -480,15 +480,11 @@ export default function ApprovalPage() {
             {filteredVendors.length === 0 && (
               <Card className="shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
                 <CardContent className="p-8 sm:p-12 text-center">
-                  <div className="text-gray-400 mb-4">
-                    {/* <User className="w-12 h-12 sm:w-16 sm:h-16 mx-auto" /> */}
-                  </div>
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
                     No vendors found
                   </h3>
                   <p className="text-gray-600 text-sm sm:text-base">
-                    Tidak ada vendor yang sesuai dengan kriteria pencarian atau
-                    filter.
+                    Tidak ada vendor yang sesuai dengan kriteria pencarian atau filter.
                   </p>
                 </CardContent>
               </Card>
@@ -497,12 +493,6 @@ export default function ApprovalPage() {
         ) : (
           // Documents View
           <>
-            <VendorInfoHeader
-              selectedVendor={selectedVendor}
-              getPriorityColor={getPriorityColor}
-              getCategoryColor={getCategoryColor}
-            />
-
             {/* Documents List */}
             <div className="space-y-4 sm:space-y-6">
               {selectedVendor.documents.map((document) => (
@@ -522,8 +512,8 @@ export default function ApprovalPage() {
         )}
       </main>
 
-      {/* Modals */}
-      {showConfirmApprovalModal && (
+      {/* Modals — tambahkan pengecekan selectedDocument untuk keamanan */}
+      {showConfirmApprovalModal && selectedDocument && (
         <TechnicalApprovalModal
           selectedDocument={selectedDocument}
           notes=""
@@ -534,7 +524,7 @@ export default function ApprovalPage() {
         />
       )}
 
-      {showApprovalWithNotesModal && (
+      {showApprovalWithNotesModal && selectedDocument && (
         <TechnicalApprovalModal
           selectedDocument={selectedDocument}
           notes={approvalWithNotes}
@@ -545,7 +535,7 @@ export default function ApprovalPage() {
         />
       )}
 
-      {showRejectModal && (
+      {showRejectModal && selectedDocument && (
         <TechnicalApprovalModal
           selectedDocument={selectedDocument}
           notes={rejectReason}
