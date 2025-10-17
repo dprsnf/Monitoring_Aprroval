@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-
-// Import types
 import { VendorData } from "@/app/types/technicalApproval";
 import { Document, Status, Role, ApprovalType, User } from "@/app/types";
 import SearchAndFilter from "@/components/SearchAndFilter";
