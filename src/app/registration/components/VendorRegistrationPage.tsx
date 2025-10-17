@@ -143,7 +143,7 @@ export default function VendorRegistrationPage() {
           </div>
 
           <CardContent className="px-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Nama Perusahaan */}
               <div className="space-y-2">
                 <label
@@ -237,89 +237,76 @@ export default function VendorRegistrationPage() {
                 </div>
               </div>
 
-              {/* Password */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="password"
-                  className={cn(
-                    "font-semibold block",
-                    formErrors.password ? "text-red-500" : "text-[#354052]"
-                  )}
-                >
-                  Password *
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={formData.password}
-                    onChange={handleInputChange}
+              <div className="flex sm:flex-row flex-col space-x-3">
+                {/* Password */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="password"
                     className={cn(
-                      "w-full pl-10 pr-12 py-3 rounded-lg border transition-all duration-200 text-gray-900 placeholder-gray-500 bg-white",
-                      formErrors.password
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-300 focus:border-blue-500"
+                      "font-semibold mb-2 block text-sm",
+                      formErrors.password ? "text-red-500" : "text-[#354052]"
                     )}
-                    placeholder="Minimal 8 karakter"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
-                    )}
-                  </button>
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className="w-full pl-10 pr-12 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
+                      placeholder="Minimal 8 karakter"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Konfirmasi Password */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="confirmPassword"
-                  className={cn(
-                    "font-semibold block",
-                    formErrors.confirmPassword
-                      ? "text-red-500"
-                      : "text-[#354052]"
-                  )}
-                >
-                  Konfirmasi Password *
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    className={cn(
-                      "w-full pl-10 pr-12 py-3 rounded-lg border transition-all duration-200 text-gray-900 placeholder-gray-500 bg-white",
-                      formErrors.confirmPassword
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-300 focus:border-blue-500"
-                    )}
-                    placeholder="Ulangi password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                {/* Konfirmasi Password */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="confirmPassword"
+                    className="font-semibold mb-2 block text-[#354052] text-sm"
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
-                    )}
-                  </button>
+                    Konfirmasi Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      className="w-full pl-10 pr-12 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
+                      placeholder="Ulangi password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
 
