@@ -177,7 +177,7 @@ export default function VendorUploadPage() {
                             {uploadedFiles.length} file(s) berhasil diupload!
                           </h4>
                           <p className="text-gray-600 text-xs sm:text-sm">
-                            Klik "Review Files" untuk melihat preview dan melanjutkan ke submit
+                            Klik &quot;Review Files&quot; untuk melihat preview dan melanjutkan ke submit
                           </p>
                         </div>
                         <button

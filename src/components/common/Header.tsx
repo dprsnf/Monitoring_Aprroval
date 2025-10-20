@@ -28,7 +28,7 @@ export default function Header({
   title,
   backHref,
   backLabel,
-  showLogo = false,
+  // showLogo = false,
   onLogout,
   onBack, // <-- DESTRUKTUR
 }: HeaderProps) {

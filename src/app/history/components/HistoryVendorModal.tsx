@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VendorHistory, HistoryDocument } from "@/app/types/documentTypes";
 import { getStatusBadge, getPriorityBadge } from "./HistoryUtils";
-import { Building, Calendar, FileText, FolderOpen, User } from "lucide-react";
+import { Building, Calendar, FileText, FolderOpen} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 

@@ -2,16 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  Eye,
-  EyeOff,
-  Building,
-  Lock,
-  Mail,
-  Phone,
-  ArrowLeft,
-  Loader2,
-} from "lucide-react";
+import { Eye, EyeOff, Building, Lock, Mail, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -297,7 +288,9 @@ export default function VendorRegistrationPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       className="absolute right-3 top-1/2 -translate-y-1/2"
                     >
                       {showConfirmPassword ? (

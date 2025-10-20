@@ -1,15 +1,16 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { Label } from "@/components/ui/label"
+import type React from "react";
 
 interface AdditionalNotesProps {
-  notes: string
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  notes: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }
 
-export default function AdditionalNotes({ notes, onChange }: AdditionalNotesProps) {
+export default function AdditionalNotes({
+  notes,
+  onChange,
+}: AdditionalNotesProps) {
   return (
     <div className="space-y-2">
       {/* <Label htmlFor="notes" className="text-gray-900 font-medium text-sm sm:text-base">
@@ -25,5 +26,5 @@ export default function AdditionalNotes({ notes, onChange }: AdditionalNotesProp
         className="w-full text-black px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors resize-none text-sm sm:text-base"
       />
     </div>
-  )
+  );
 }

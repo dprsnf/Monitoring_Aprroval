@@ -1,4 +1,4 @@
-import { Document, User, Status, ApprovalType, Approval } from "./index";
+import { Document, User} from "./index";
 
 export interface VendorData {
   user: User;

@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Building, FolderOpen, Calendar, Eye } from "lucide-react";
 import { VendorData } from "@/app/types/technicalApproval";
-import { Document, Status } from "@/app/types";
+import { Document} from "@/app/types";
 
 interface VendorCardProps {
     vendor: VendorData;

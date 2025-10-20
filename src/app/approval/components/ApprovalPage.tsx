@@ -292,18 +292,18 @@ export default function ApprovalPage() {
     }
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "Electrical":
-        return "bg-purple-100 text-purple-800";
-      case "Civil":
-        return "bg-orange-100 text-orange-800";
-      case "Mechanical":
-        return "bg-indigo-100 text-indigo-800";
-      default:
-        return "bg-blue-100 text-blue-800";
-    }
-  };
+  // const getCategoryColor = (category: string) => {
+  //   switch (category) {
+  //     case "Electrical":
+  //       return "bg-purple-100 text-purple-800";
+  //     case "Civil":
+  //       return "bg-orange-100 text-orange-800";
+  //     case "Mechanical":
+  //       return "bg-indigo-100 text-indigo-800";
+  //     default:
+  //       return "bg-blue-100 text-blue-800";
+  //   }
+  // };
 
   // Event handlers
   const handleVendorClick = (vendor: VendorData) => {
