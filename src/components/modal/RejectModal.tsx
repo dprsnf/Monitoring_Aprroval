@@ -23,7 +23,7 @@ export default function RejectModal({
                     <div className="bg-red-50 p-3 rounded-lg border border-red-200">
                         <h4 className="font-semibold text-red-900 mb-1">Return Process</h4>
                         <p className="text-red-700 text-sm">
-                            ❌ Dokumen akan dikembalikan ke vendor dengan status "Return for Correction" untuk perbaikan dan resubmission
+                            ❌ Dokumen akan dikembalikan ke vendor dengan status &quot;Return for Correction&quot; untuk perbaikan dan resubmission
                         </p>
                     </div>
                     <div>
@@ -44,7 +44,7 @@ export default function RejectModal({
                             className="w-full"
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            Catatan: Dokumen akan berstatus "Return for Correction" dan vendor dapat mengajukan revisi
+                            Catatan: Dokumen akan berstatus &quot;Return for Correction&quot; dan vendor dapat mengajukan revisi
                         </p>
                     </div>
                 </div>

@@ -186,7 +186,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="flex flex-row space-x-3">
+              <div className="flex sm:flex-row flex-col space-x-3">
                 {/* Password */}
               <div className="space-y-2">
                 <label
