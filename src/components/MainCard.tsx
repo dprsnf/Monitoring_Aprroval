@@ -6,7 +6,7 @@ import { Upload, CheckCircle, History, Monitor, ChevronRight, FileText } from "l
 export interface DashboardItem {
   title: string;
   description: string;
-  icon: any;
+  icon: React.ElementType;
   href: string;
   color: string;
   iconColor: string;

@@ -42,8 +42,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { Role, User as UserType } from "@/app/types";
-
 interface ProgressDocument {
   id: string;
   fileName: string;
