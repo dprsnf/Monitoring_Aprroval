@@ -1,6 +1,4 @@
 "use client";
-
-import Link from "next/link";
 import { ChevronLeft, ArrowLeft, ChevronDown, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +10,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { VendorData } from "@/app/types/technicalApproval";
+import router from "next/router";
 
 interface TechnicalApprovalHeaderProps {
     selectedVendor: VendorData | null;
@@ -24,12 +23,11 @@ export default function TechnicalApprovalHeader({ selectedVendor, onBackToVendor
             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
                 <div className="flex items-center justify-between h-14 sm:h-16">
                     <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 min-w-0 flex-1">
-                        <Link href="/">
-                            <Button className="bg-[#efe62f] hover:bg-[#125d72] text-gray-900 hover:text-white transition-all duration-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
-                                <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                <span className="hidden sm:inline">Dashboard</span>
+                            <Button 
+                            onClick={() => router.push("/")}
+                            className="bg-[#efe62f] hover:bg-[#125d72] text-gray-900 hover:text-white transition-all duration-200">
+                                <ChevronLeft/>
                             </Button>
-                        </Link>
                         
                         {selectedVendor && (
                             <Button 
