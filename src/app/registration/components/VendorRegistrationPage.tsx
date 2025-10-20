@@ -7,14 +7,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { FormErrors } from "@/app/types";
+import { ApiErrorResponse, FormErrors } from "@/app/types";
 import { cn } from "@/lib/utils";
+import api from "@/lib/axios";
+import { isAxiosError } from "axios";
 
 export default function VendorRegistrationPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [apiError, setApiError] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     // telepon: "",
@@ -61,14 +64,25 @@ export default function VendorRegistrationPage() {
     }
 
     try {
-      // TODO: Ganti dengan API call ke /auth/register-vendor
-      console.log("Register data:", formData);
-      // Simulasi loading
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      // Jika sukses → redirect ke login atau dashboard
-    } catch (error) {
-      // TODO: Tangani error API
+      const response = await api.post("/auth/register", {
+        email: formData.email,
+        name: formData.name,
+        password: formData.password,
+        division: "Vendor",
+      });
+
+      console.log("Register success:", response.data);
+      alert("Registrasi berhasil! Silakan login.");
+      window.location.href = "/login";
+    } catch (error: unknown) {
       console.error("Registration error:", error);
+      if (isAxiosError<ApiErrorResponse>(error)) {
+        const message =
+          error.response?.data?.message || "Alamat Email/Kata Sandi Salah.";
+        setApiError(message);
+      } else {
+        setApiError("Terjadi kesalahan yang tidak terduga. Silakan coba lagi.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -135,10 +149,15 @@ export default function VendorRegistrationPage() {
 
           <CardContent className="px-8">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {apiError && (
+                <div className="bg-red-500 text-white px-4 py-3 rounded-md text-sm text-center">
+                  {apiError}
+                </div>
+              )}
               {/* Nama Perusahaan */}
               <div className="space-y-2">
                 <label
-                  htmlFor="namaPerusahaan"
+                  htmlFor="name"
                   className={cn(
                     "font-semibold block",
                     formErrors.name ? "text-red-500" : "text-[#354052]"
@@ -149,8 +168,8 @@ export default function VendorRegistrationPage() {
                 <div className="relative">
                   <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                   <input
-                    id="namaPerusahaan"
-                    name="namaPerusahaan"
+                    id="name"
+                    name="name"
                     type="text"
                     required
                     value={formData.name}
