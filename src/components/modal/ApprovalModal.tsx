@@ -1,7 +1,7 @@
-import { Send, XCircle } from "lucide-react";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ModalProps, ApprovalType, Status } from "@/app/types";
+import { ModalProps, ApprovalType} from "@/app/types";
 
 export default function ApprovalModal({
     selectedDocument,
@@ -53,7 +53,7 @@ export default function ApprovalModal({
                             className="w-full"
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            Status dokumen akan berubah menjadi "In Review" sesuai dengan tipe dokumen
+                            Status dokumen akan berubah menjadi &quot;In Review&quot; sesuai dengan tipe dokumen
                         </p>
                     </div>
                 </div>

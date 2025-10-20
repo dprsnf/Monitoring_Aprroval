@@ -1,4 +1,4 @@
-import { XCircle, FileText, MessageSquare, CheckCircle, User, Calendar, Clock } from "lucide-react";
+import { FileText, MessageSquare, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Document, Status, ApprovalType } from "@/app/types";
