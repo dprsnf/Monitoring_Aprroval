@@ -29,7 +29,9 @@ export default function RegisterPage() {
 
   const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -57,7 +59,8 @@ export default function RegisterPage() {
       router.push("/login");
     } catch (error: unknown) {
       if (isAxiosError<ApiErrorResponse>(error)) {
-        const message = error.response?.data?.message || "Terjadi kesalahan pada server.";
+        const message =
+          error.response?.data?.message || "Terjadi kesalahan pada server.";
         setApiError(message);
       } else {
         setApiError("Terjadi kesalahan yang tidak terduga. Silakan coba lagi.");
@@ -69,7 +72,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* glossy effect animation */}
+      {/* glossy animation */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -82,10 +85,15 @@ export default function RegisterPage() {
           transform: "rotate(45deg)",
         }}
         animate={{ x: ["0%", "100%"] }}
-        transition={{ duration: 3, repeat: Infinity, repeatDelay: 2, ease: "easeInOut" }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          repeatDelay: 2,
+          ease: "easeInOut",
+        }}
       />
 
-      {/* Main Card */}
+      {/* main card */}
       <motion.div
         className="w-full max-w-xl z-10"
         initial={{ opacity: 0, y: 20 }}
@@ -95,7 +103,12 @@ export default function RegisterPage() {
         <Card className="bg-white border border-gray-200 shadow-xl">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <Image src="/Logo_PLN.svg" alt="PLN Logo" height={70} width={125} />
+              <Image
+                src="/Logo_PLN.svg"
+                alt="PLN Logo"
+                height={70}
+                width={125}
+              />
             </div>
             <h1 className="text-xl font-bold mb-2">Daftar Akun Baru</h1>
             <p className="text-sm">Lengkapi data di bawah untuk membuat akun</p>
@@ -121,7 +134,7 @@ export default function RegisterPage() {
                   Nama Lengkap
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     id="name"
                     name="name"
@@ -129,7 +142,7 @@ export default function RegisterPage() {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 bg-white"
                     placeholder="Masukkan nama lengkap"
                   />
                 </div>
@@ -147,7 +160,7 @@ export default function RegisterPage() {
                   Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     id="email"
                     name="email"
@@ -155,7 +168,7 @@ export default function RegisterPage() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 bg-white"
                     placeholder="Masukkan email PLN"
                   />
                 </div>
@@ -164,13 +177,13 @@ export default function RegisterPage() {
               {/* Divisi */}
               <div className="space-y-2">
                 <label
-                  htmlFor="divisi"
+                  htmlFor="division"
                   className="font-semibold mb-2 block text-[#354052] text-sm"
                 >
                   Divisi
                 </label>
                 <div className="relative">
-                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <select
                     id="division"
                     name="division"
@@ -186,77 +199,78 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="flex sm:flex-row flex-col space-x-3">
+              {/* Password & Konfirmasi */}
+              <div className="flex sm:flex-row flex-col sm:space-x-3 space-y-3 sm:space-y-0">
                 {/* Password */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="password"
-                  className={cn(
-                    "font-semibold mb-2 block text-sm",
-                    formErrors.password ? "text-red-500" : "text-[#354052]"
-                  )}
-                >
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-12 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
-                    placeholder="Minimal 8 karakter"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+                <div className="space-y-2 w-full">
+                  <label
+                    htmlFor="password"
+                    className={cn(
+                      "font-semibold mb-2 block text-sm",
+                      formErrors.password ? "text-red-500" : "text-[#354052]"
                     )}
-                  </button>
+                  >
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-12 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 bg-white"
+                      placeholder="Minimal 8 karakter"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Konfirmasi Password */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="confirmPassword"
-                  className="font-semibold mb-2 block text-[#354052] text-sm"
-                >
-                  Konfirmasi Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirm ? "text" : "password"}
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-12 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
-                    placeholder="Ulangi password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm(!showConfirm)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                {/* Konfirmasi Password */}
+                <div className="space-y-2 w-full">
+                  <label
+                    htmlFor="confirmPassword"
+                    className="font-semibold mb-2 block text-[#354052] text-sm"
                   >
-                    {showConfirm ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
-                    )}
-                  </button>
+                    Konfirmasi Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirm ? "text" : "password"}
+                      required
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-12 py-3 rounded-lg border border-gray-300 focus:border-blue-500 text-gray-900 bg-white"
+                      placeholder="Ulangi password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      {showConfirm ? (
+                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
               </div>
 
               {/* Tombol Submit */}
@@ -265,7 +279,11 @@ export default function RegisterPage() {
                 className="w-full bg-[#14a2ba] hover:bg-[#11889d] text-white font-semibold mt-3 py-5 px-4 rounded-lg transition-all duration-200"
               >
                 <div className="flex items-center justify-center gap-2">
-                  {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "DAFTAR"}
+                  {isLoading ? (
+                    <Loader2 className="animate-spin h-5 w-5" />
+                  ) : (
+                    "DAFTAR"
+                  )}
                 </div>
               </Button>
 
