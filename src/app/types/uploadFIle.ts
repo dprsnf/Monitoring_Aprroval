@@ -1,4 +1,4 @@
-export type UploadStatus = "uploading" | "completed" | "error"
+export type UploadStatus = "pending" | "uploading" | "completed" | "error";
 
 export interface UploadedFile {
   id: string
