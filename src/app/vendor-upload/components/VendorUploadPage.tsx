@@ -12,10 +12,10 @@ import AdditionalNotes from "@/components/AdditionalNotes";
 import SubmitSection from "@/components/SubmitSection";
 import type { UploadedFile, UploadFormData } from "@/app/types/uploadFIle";
 import Header from "@/components/common/Header";
-import { Role } from "@/app/types";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2 } from "lucide-react";
-import router from "next/router";
+import { Loader2, X } from "lucide-react";
+import { isAxiosError } from "axios";
+import { ApiErrorResponse } from "@/app/types";
 
 type FileForUpload = UploadedFile & {
   file: File;
@@ -29,10 +29,11 @@ export default function VendorUploadPage() {
   const [showReviewStep, setShowReviewStep] = useState(false);
   const submitSectionRef = useRef<HTMLDivElement>(null);
   const { user, isLoading, logout } = useAuth();
+  const [apiError, setApiError] = useState("");
 
   const [formData, setFormData] = useState<UploadFormData>({
     projectTitle: "",
-    category: "", 
+    category: "",
     noContract: "",
     notes: "",
     contractDate: "",
@@ -55,12 +56,12 @@ export default function VendorUploadPage() {
       const fileId = `file-${Date.now()}-${index}`;
       return {
         id: fileId,
-        file: file, // asli Save real file object
+        file: file,
         name: file.name,
         size: formatFileSize(file.size),
         type: file.type || getFileTypeFromExtension(file.name),
         uploadTime: new Date().toLocaleString(),
-        status: "pending", 
+        status: "pending",
         progress: 0,
       };
     });
@@ -139,32 +140,26 @@ export default function VendorUploadPage() {
       // Siapkan FormData untuk file ini
       // Preparing FormData for this file
       const fileFormData = new FormData();
-      fileFormData.append("file", fileToUpload.file); 
+      fileFormData.append("file", fileToUpload.file);
       fileFormData.append("name", formData.projectTitle);
-      fileFormData.append("documentType", formData.category); 
-      fileFormData.append("contractNumber", formData.noContract); 
+      fileFormData.append("documentType", formData.category);
+      fileFormData.append("contractNumber", formData.noContract);
 
       try {
         // Send request to backend using API
-        const response = await api.post(
-          "/documents/submit", 
-          fileFormData,
-          {
-            onUploadProgress: (progressEvent) => {
-              const { loaded, total } = progressEvent;
-              if (total) {
-                const percentage = Math.floor((loaded * 100) / total);
-                setUploadedFiles((prev) =>
-                  prev.map((f) =>
-                    f.id === fileToUpload.id
-                      ? { ...f, progress: percentage }
-                      : f
-                  )
-                );
-              }
-            },
-          }
-        );
+        const response = await api.post("/documents/submit", fileFormData, {
+          onUploadProgress: (progressEvent) => {
+            const { loaded, total } = progressEvent;
+            if (total) {
+              const percentage = Math.floor((loaded * 100) / total);
+              setUploadedFiles((prev) =>
+                prev.map((f) =>
+                  f.id === fileToUpload.id ? { ...f, progress: percentage } : f
+                )
+              );
+            }
+          },
+        });
 
         // Update UI state to 'completed'
         if (response.status === 201) {
@@ -176,18 +171,17 @@ export default function VendorUploadPage() {
             )
           );
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Update UI state to 'error'
-        console.error("Upload error:", error);
-        const errorMessage =
-          error.response?.data?.message || "Upload failed. Check console.";
-        setUploadedFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileToUpload.id
-              ? { ...f, status: "error", errorMessage: errorMessage }
-              : f
-          )
-        );
+        if (isAxiosError<ApiErrorResponse>(error)) {
+          const message =
+            error.response?.data?.message || "Upload Failed. check console.";
+          setApiError(message);
+        } else {
+          setApiError(
+            "Terjadi kesalahan yang tidak terduga. Silakan coba lagi."
+          );
+        }
       }
     });
 
@@ -218,13 +212,6 @@ export default function VendorUploadPage() {
       setShowReviewStep(false);
     }
   };
-  const handleLogout = () => {
-    // Delete token from cookie
-    document.cookie = "access_token=; Max-Age=0; path=/";
-    document.cookie = "refresh_token=; Max-Age=0; path=/";
-    document.cookie = "role=; Max-Age=0; path=/";
-    router.push("/");
-  };
 
   if (isLoading) {
     return (
@@ -240,7 +227,7 @@ export default function VendorUploadPage() {
         title="Upload Drawing"
         currentUser={user}
         backHref="/"
-        onLogout={handleLogout}
+        onLogout={logout}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -342,6 +329,26 @@ export default function VendorUploadPage() {
               />
             </CardContent>
           </Card>
+
+          {apiError && (
+            <div
+              className="relative flex items-center justify-between gap-4 rounded-lg border border-red-400 bg-red-100 px-4 py-3 text-red-700 shadow-md"
+              role="alert"
+            >
+              <div>
+                <strong className="font-bold">Error! </strong>
+                <span className="block sm:inline">{apiError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApiError("")} // Tombol untuk menutup alert
+                className="p-1 text-red-700 rounded-full hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-400"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
 
           <Card
             ref={submitSectionRef}
