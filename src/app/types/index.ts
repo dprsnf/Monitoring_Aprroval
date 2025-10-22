@@ -25,7 +25,7 @@ export enum ApprovalType {
 }
 
 export interface User {
-  id: number;
+  id?: number;
   email: string;
   name: string;
   role: Role;

@@ -426,7 +426,7 @@ export default function DocumentReviewPage() {
     };
 
     const handleReviewSubmit = () => {
-        if (selectedDocument && managementNotes.trim()) {
+        if (selectedDocument && managementNotes.trim() && currentUser.id) { // Your type guard is good
             const nextStatus = selectedDocument.documentType === ApprovalType.protection 
                 ? Status.inReviewEngineering 
                 : Status.inReviewConsultant;
@@ -437,7 +437,7 @@ export default function DocumentReviewPage() {
                         ...doc,
                         status: nextStatus,
                         reviewedBy: currentUser,
-                        reviewedById: currentUser.id,
+                        reviewedById: currentUser.id!, // <-- FIX 1
                         updatedAt: new Date().toISOString(),
                         remarks: managementNotes,
                         approvals: [
@@ -447,7 +447,7 @@ export default function DocumentReviewPage() {
                                 documentId: doc.id,
                                 type: doc.documentType || ApprovalType.protection,
                                 approvedBy: currentUser,
-                                approvedById: currentUser.id,
+                                approvedById: currentUser.id!, // <-- FIX 2
                                 status: nextStatus,
                                 notes: managementNotes,
                                 deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
@@ -467,14 +467,14 @@ export default function DocumentReviewPage() {
     };
 
     const handleReturnSubmit = () => {
-        if (selectedDocument && managementNotes.trim()) {
+        if (selectedDocument && managementNotes.trim() && currentUser.id) { // Your type guard is good
             const updatedData = documents.map(doc => {
                 if (doc.id === selectedDocument.id) {
                     return {
                         ...doc,
                         status: Status.returnForCorrection,
                         reviewedBy: currentUser,
-                        reviewedById: currentUser.id,
+                        reviewedById: currentUser.id!, // <-- FIX 3
                         updatedAt: new Date().toISOString(),
                         remarks: managementNotes,
                         approvals: [
@@ -484,7 +484,7 @@ export default function DocumentReviewPage() {
                                 documentId: doc.id,
                                 type: doc.documentType || ApprovalType.protection,
                                 approvedBy: currentUser,
-                                approvedById: currentUser.id,
+                                approvedById: currentUser.id!, // <-- FIX 4
                                 status: Status.returnForCorrection,
                                 notes: managementNotes,
                                 deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days from now

@@ -14,13 +14,13 @@ import {
 import type { User } from "@/app/types";
 
 interface HeaderProps {
-  currentUser?: User;
+  currentUser: User | null;
   title?: string;
   backHref?: string;
   backLabel?: string;
   showLogo?: boolean;
   onLogout?: () => void;
-  onBack?: () => void; // <-- TAMBAHKAN INI
+  onBack?: () => void; 
 }
 
 export default function Header({
@@ -30,26 +30,20 @@ export default function Header({
   backLabel,
   // showLogo = false,
   onLogout,
-  onBack, // <-- DESTRUKTUR
+  onBack, 
 }: HeaderProps) {
   const router = useRouter();
 
   const handleBackOrDashboard = () => {
     if (onBack) {
-      // Prioritaskan callback kustom dari halaman
       onBack();
     } else if (backHref !== undefined && backHref !== null) {
-      // Jika backHref eksplisit diberikan (termasuk string kosong? hindari itu)
       router.push(backHref);
     } else {
-      // Fallback ke dashboard
-      router.push("/dashboard");
+      router.push("/");
     }
   };
 
-  // Tentukan apakah tombol back/home ditampilkan
-  // Jika onBack atau backHref diberikan → tampilkan tombol
-  // Jika tidak → tetap tampilkan tombol ke dashboard (opsional, bisa diubah)
   const showBackButton = onBack !== undefined || backHref !== undefined;
 
   return (
@@ -91,7 +85,7 @@ export default function Header({
                 <DropdownMenuTrigger asChild>
                   <Button className="bg-[#efe62f] hover:bg-[#125d72] text-gray-900 hover:text-white transition-all duration-200 sm:px-3 py-1.5 sm:py-2 rounded-lg">
                     <span className="hidden sm:inline text-xs sm:text-sm font-medium mr-1">
-                      {currentUser.name.split(" ")[0]}
+                      {currentUser.name}
                     </span>
                     <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
