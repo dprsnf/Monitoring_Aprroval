@@ -66,9 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: decodedPayload.id,
           email: decodedPayload.email,
           name: decodedPayload.name,
-          role: decodedPayload.role,
+          division: decodedPayload.division,
         };
         setUser(userData);
+        console.log(setUser)
       }
     } catch (error) {
       // Error if token is invalid/corrupted

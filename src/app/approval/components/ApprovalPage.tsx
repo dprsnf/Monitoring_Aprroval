@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { VendorData } from "@/app/types/technicalApproval";
-import { Document, Status, Role, ApprovalType, User } from "@/app/types";
+import { Document, Status, Division, ApprovalType, User } from "@/app/types";
 import SearchAndFilter from "@/components/SearchAndFilter";
 import VendorCard from "./VendorCard";
 import DocumentCard from "./DocumentCard";
@@ -18,7 +18,7 @@ const vendorData: VendorData[] = [
       id: 1,
       email: "surya.engineering@example.com",
       name: "PT Surya Engineering",
-      role: Role.Vendor,
+      division: Division.Vendor,
     },
     projectTitle: "Gardu Induk Cibinong 150kV",
     category: "Electrical",
@@ -38,7 +38,7 @@ const vendorData: VendorData[] = [
           id: 1,
           email: "surya.engineering@example.com",
           name: "PT Surya Engineering",
-          role: Role.Vendor,
+          division: Division.Vendor,
         },
         submittedById: 1,
         createdAt: "2024-10-01T00:00:00.000Z",
@@ -58,14 +58,14 @@ const vendorData: VendorData[] = [
           id: 1,
           email: "surya.engineering@example.com",
           name: "PT Surya Engineering",
-          role: Role.Vendor,
+          division: Division.Vendor,
         },
         submittedById: 1,
         reviewedBy: {
           id: 2,
           email: "technical@pln.co.id",
           name: "Ahmad Technical Team",
-          role: Role.Engineer,
+          division: Division.Engineer,
         },
         reviewedById: 2,
         createdAt: "2024-10-01T00:00:00.000Z",
@@ -81,7 +81,7 @@ const vendorData: VendorData[] = [
               id: 2,
               email: "technical@pln.co.id",
               name: "Ahmad Technical Team",
-              role: Role.Engineer,
+              division: Division.Engineer,
             },
             approvedById: 2,
             status: Status.approved,
@@ -104,7 +104,7 @@ const vendorData: VendorData[] = [
           id: 1,
           email: "surya.engineering@example.com",
           name: "PT Surya Engineering",
-          role: Role.Vendor,
+          division: Division.Vendor,
         },
         submittedById: 1,
         createdAt: "2024-10-02T00:00:00.000Z",
@@ -120,7 +120,7 @@ const vendorData: VendorData[] = [
       id: 3,
       email: "buana.teknik@example.com",
       name: "PT Buana Teknik",
-      role: Role.Vendor,
+      division: Division.Vendor,
     },
     projectTitle: "Substation Bekasi 70kV",
     category: "Electrical",
@@ -140,14 +140,14 @@ const vendorData: VendorData[] = [
           id: 3,
           email: "buana.teknik@example.com",
           name: "PT Buana Teknik",
-          role: Role.Vendor,
+          division: Division.Vendor,
         },
         submittedById: 3,
         reviewedBy: {
           id: 2,
           email: "technical@pln.co.id",
           name: "Citra Technical Team",
-          role: Role.Engineer,
+          division: Division.Engineer,
         },
         reviewedById: 2,
         createdAt: "2024-09-28T00:00:00.000Z",
@@ -163,7 +163,7 @@ const vendorData: VendorData[] = [
               id: 2,
               email: "technical@pln.co.id",
               name: "Citra Technical Team",
-              role: Role.Engineer,
+              division: Division.Engineer,
             },
             approvedById: 2,
             status: Status.approved,
@@ -183,7 +183,7 @@ const currentUser: User = {
   id: 2,
   email: "technical@pln.co.id",
   name: "Technical Team PLN",
-  role: Role.Engineer,
+  division: Division.Engineer,
 };
 
 export default function ApprovalPage() {

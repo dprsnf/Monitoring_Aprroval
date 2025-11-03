@@ -101,7 +101,7 @@ export default function Header({
                         {currentUser.name}
                       </p>
                       <p className="text-xs text-[#14a2ba]">
-                        {currentUser.role} - PLN
+                        {currentUser.division} - PLN
                       </p>
                       <p className="text-xs text-gray-600">
                         {currentUser.email}

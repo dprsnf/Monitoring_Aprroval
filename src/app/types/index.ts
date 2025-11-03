@@ -1,10 +1,10 @@
 import { JSX } from "react";
 
-export enum Role {
+export enum Division {
   Manager = "Manager",
   Dalkon = "Dalkon",
   Engineer = "Engineer",
-  Vendor = "Vendor"
+  Vendor = "Vendor",
 }
 
 export enum Status {
@@ -16,25 +16,37 @@ export enum Status {
   approvedWithNotes = "approvedWithNotes",
   returnForCorrection = "returnForCorrection",
   rejected = "rejected",
-  overdue = "overdue"
+  overdue = "overdue",
 }
 
 export enum ApprovalType {
   protection = "protection",
-  civil = "civil"
+  civil = "civil",
 }
 
 export interface User {
   id?: number;
   email: string;
   name: string;
-  role: Role;
+  division: Division;
 }
 
 export interface Contract {
-  id: number;
+  id: string;
   contractNumber: string;
   contractDate: string;
+}
+
+// ✅ BARU: Interface untuk riwayat versi file (patch)
+export interface DocumentVersion {
+  id: string;
+  filePath: string;
+  version: number;
+  createdAt: string;
+  uploadedBy: {
+    id: number;
+    name: string;
+  };
 }
 
 export interface Document {
@@ -45,17 +57,20 @@ export interface Document {
   overallDeadline?: string;
   documentType?: ApprovalType;
   contract?: Contract;
-  contractId?: number;
+  contractId?: string;
   submittedBy: User;
   submittedById: number;
   reviewedBy?: User;
   reviewedById?: number;
   createdAt: string;
   updatedAt: string;
-  progress?: string;
-  version: number;
   remarks?: string;
   approvals: Approval[];
+
+  // ✅ DIPERBARUI: Disesuaikan dengan schema.prisma
+  progress: string[]; // Diubah dari string?
+  latestVersion: number; // Diubah dari 'version'
+  versions: DocumentVersion[]; // Ditambahkan
 }
 
 export interface Approval {
@@ -71,8 +86,8 @@ export interface Approval {
   updatedAt: string;
 }
 
-export interface ApiErrorResponse{
-    message: string;
+export interface ApiErrorResponse {
+  message: string;
 }
 
 export interface FormErrors {
@@ -81,7 +96,6 @@ export interface FormErrors {
   name?: string;
   confirmPassword?: string;
 }
-
 
 // Props untuk komponen yang menggunakan Document
 export interface DocumentListProps {

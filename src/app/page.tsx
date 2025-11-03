@@ -3,14 +3,14 @@
 import Header from "@/components/common/Header"
 import DashboardGrid from "@/components/dashboard/DashboardGrid"
 import DashboardStats from "@/components//dashboard/DashboardStats"
-import { Role } from "./types"
+import { Division } from "./types"
 
 export default function Home() {
   const currentUser = {
     id: 0,
     name: "Guest",
     email: "guest@example.com",
-    role: Role.Dalkon,
+    division: Division.Dalkon,
   }
 
   const handleLogout = () => console.log("Logout clicked")
