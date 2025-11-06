@@ -15,25 +15,29 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
-import { Division, Status, Document } from "@/app/types";
+import { ApiErrorResponse, Division, Document } from "@/app/types";
 import Header from "@/components/common/Header";
 import StatusBadge from "./StatusBadge";
 import DocumentCard from "./DocumentCard";
 import DocumentCardSkeleton from "./DocumentCardSkeleton";
 import FilterSection from "./FilterSection";
 import WorkflowHeader from "./WorkflowHeader";
+import { isAxiosError } from "axios";
 
 export default function DocumentReviewPage() {
   const { user: authUser, isLoading: authLoading, logout } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(
+    null
+  );
+  const [, setApiError] = useState("");
   const [detailData, setDetailData] = useState<Document | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showApprovalModal, setShowApprovalModal] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [, setShowApprovalModal] = useState(false);
+  const [, setShowRejectModal] = useState(false);
   const [managementNotes, setManagementNotes] = useState("");
   const [activeTab, setActiveTab] = useState<"new" | "results">("new");
   const [loading, setLoading] = useState(false);
@@ -59,9 +63,14 @@ export default function DocumentReviewPage() {
       setError(null);
       const response = await api.get(endpoint);
       setDocuments(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load documents");
-      console.error("Error loading documents:", err);
+    } catch (err: unknown) {
+      if (isAxiosError<ApiErrorResponse>(err)) {
+        const message =
+          err.response?.data?.message || "Gagal memuat dokumen.";
+        setApiError(message);
+      } else {
+        setApiError("Terjadi kesalahan yang tidak terduga. Silakan coba lagi.");
+      }
     } finally {
       setLoading(false);
     }
@@ -82,97 +91,7 @@ export default function DocumentReviewPage() {
     setManagementNotes("");
   }, []);
 
-  const handleReviewSubmit = useCallback(async () => {
-    if (!selectedDocument || !currentUser) return;
 
-    try {
-      setLoading(true);
-      setError(null);
-
-      if (currentUser.division === Division.Dalkon) {
-        await api.patch(`/documents/${selectedDocument.id}/dalkon-review`, {
-          action: "approve",
-        });
-        alert(`✅ Dokumen "${selectedDocument.name}" berhasil diteruskan.`);
-      } else if (currentUser.division === Division.Engineer) {
-        const action = managementNotes.trim() ? "approveWithNotes" : "approve";
-        await api.patch(
-          `/documents/${selectedDocument.id}/engineering-review`,
-          {
-            action,
-            notes: managementNotes || undefined,
-          },
-        );
-        const message =
-          action === "approveWithNotes"
-            ? `✅ Dokumen "${selectedDocument.name}" disetujui dengan catatan.`
-            : `✅ Dokumen "${selectedDocument.name}" disetujui.`;
-        alert(message);
-      } else if (currentUser.division === Division.Manager) {
-        await api.patch(`/documents/${selectedDocument.id}/manager-review`, {
-          action: "approve",
-        });
-        alert(
-          `✅ Dokumen "${selectedDocument.name}" telah disetujui oleh Manager.`,
-        );
-      }
-
-      await loadDocuments();
-      closeModals();
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to approve document");
-      console.error("Error approving document:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedDocument, currentUser, managementNotes, loadDocuments, closeModals]);
-
-  const handleReturnSubmit = useCallback(async () => {
-    if (!selectedDocument || !currentUser || !managementNotes.trim()) {
-      alert("⚠️ Catatan pengembalian harus diisi!");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      if (currentUser.division === Division.Dalkon) {
-        await api.patch(`/documents/${selectedDocument.id}/dalkon-review`, {
-          action: "returnForCorrection",
-        });
-        alert(
-          `↩️ Dokumen "${selectedDocument.name}" dikembalikan ke Vendor untuk koreksi.`,
-        );
-      } else if (currentUser.division === Division.Engineer) {
-        await api.patch(
-          `/documents/${selectedDocument.id}/engineering-review`,
-          {
-            action: "returnForCorrection",
-            notes: managementNotes,
-          },
-        );
-        alert(
-          `↩️ Dokumen "${selectedDocument.name}" dikembalikan untuk perbaikan.`,
-        );
-      } else if (currentUser.division === Division.Manager) {
-        await api.patch(`/documents/${selectedDocument.id}/manager-review`, {
-          action: "returnForCorrection",
-        });
-        alert(
-          `↩️ Dokumen "${selectedDocument.name}" dikembalikan oleh Manager.`,
-        );
-      }
-
-      await loadDocuments();
-      closeModals();
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to return document");
-      console.error("Error returning document:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedDocument, currentUser, managementNotes, loadDocuments, closeModals]);
 
   const handleRejectSubmit = useCallback(
     async (docToReject: Document) => {
@@ -189,14 +108,21 @@ export default function DocumentReviewPage() {
         alert(`❌ Dokumen "${docToReject.name}" ditolak.`);
         await loadDocuments();
         closeModals();
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to reject document");
-        console.error("Error rejecting document:", err);
+      } catch (err: unknown) {
+        if (isAxiosError<ApiErrorResponse>(err)) {
+          const message =
+            err.response?.data?.message || "Gagal untuk menolak dokumen.";
+          setApiError(message);
+        } else {
+          setApiError(
+            "Terjadi kesalahan yang tidak terduga. Silakan coba lagi."
+          );
+        }
       } finally {
         setLoading(false);
       }
     },
-    [currentUser, loadDocuments, closeModals],
+    [currentUser, loadDocuments, closeModals]
   );
 
   const handleDetailClick = useCallback(async (document: Document) => {
@@ -209,9 +135,15 @@ export default function DocumentReviewPage() {
     try {
       const response = await api.get(`/documents/${document.id}`);
       setDetailData(response.data);
-    } catch (err: any) {
-      setError("Failed to load document details. Please close and try again.");
-      console.error("Error fetching document detail:", err);
+    } catch (err: unknown) {
+      if (isAxiosError<ApiErrorResponse>(err)) {
+        const message =
+          err.response?.data?.message ||
+          "Gagal memuat detail dokumen. Tolong tutup dan coba lagi";
+        setApiError(message);
+      } else {
+        setApiError("Terjadi kesalahan yang tidak terduga. Silakan coba lagi.");
+      }
     } finally {
       setDetailLoading(false);
     }
@@ -233,13 +165,13 @@ export default function DocumentReviewPage() {
     (document: Document) => {
       if (
         window.confirm(
-          `Yakin ingin menolak dokumen "${document.name}"? Tindakan ini tidak dapat dibatalkan.`,
+          `Yakin ingin menolak dokumen "${document.name}"? Tindakan ini tidak dapat dibatalkan.`
         )
       ) {
         handleRejectSubmit(document);
       }
     },
-    [handleRejectSubmit],
+    [handleRejectSubmit]
   );
 
   const filteredData = documents.filter((doc) => {
@@ -455,15 +387,12 @@ export default function DocumentReviewPage() {
                                   <p className="text-xs text-gray-500">
                                     Uploaded by {version.uploadedBy?.name} on{" "}
                                     {new Date(
-                                      version.createdAt,
+                                      version.createdAt
                                     ).toLocaleDateString()}
                                   </p>
                                 </div>
                               </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                              >
+                              <Button variant="outline" size="sm">
                                 <Download className="w-4 h-4 mr-2" />
                                 Download
                               </Button>

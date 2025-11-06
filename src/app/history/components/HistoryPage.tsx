@@ -10,7 +10,7 @@ import HistoryDocumentModal from "./HistoryDocumentModal";
 import { Building, CheckCircle, XCircle, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import Header from "@/components/common/Header";
-import { Role } from "@/app/types";
+import { Division } from "@/app/types";
 
 export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,7 +24,7 @@ export default function HistoryPage() {
     id: 0,
     name: "History Team",
     email: "history@pln.co.id",
-    role: Role.Dalkon,
+    division: Division.Dalkon,
   };
 
   const historyData: VendorHistory[] = [

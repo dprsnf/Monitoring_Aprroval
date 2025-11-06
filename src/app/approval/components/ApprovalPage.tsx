@@ -1,205 +1,121 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { VendorData } from "@/app/types/technicalApproval";
-import { Document, Status, Division, ApprovalType, User } from "@/app/types";
+import {
+  VendorData,
+  Document,
+  Status,
+  Division,
+  ApiErrorResponse,
+} from "@/app/types";
 import SearchAndFilter from "@/components/SearchAndFilter";
 import VendorCard from "./VendorCard";
 import DocumentCard from "./DocumentCard";
 import TechnicalApprovalModal from "./TechnicalApprovalModal";
 import DetailModal from "@/components/modal/DetailModal";
 import Header from "@/components/common/Header";
-
-// Sample data menggunakan type yang sama dengan schema Prisma
-const vendorData: VendorData[] = [
-  {
-    user: {
-      id: 1,
-      email: "surya.engineering@example.com",
-      name: "PT Surya Engineering",
-      division: Division.Vendor,
-    },
-    projectTitle: "Gardu Induk Cibinong 150kV",
-    category: "Electrical",
-    priority: "high",
-    reviewDeadline: "2024-10-15",
-    description:
-      "Pembangunan gardu induk 150kV dengan kapasitas 2x60 MVA untuk area Cibinong",
-    documents: [
-      {
-        id: 1,
-        name: "SLD_GI_Cibinong_Rev01.pdf",
-        filePath: "/documents/sld-gi-cibinong.pdf",
-        status: Status.submitted,
-        overallDeadline: "2024-10-15T00:00:00.000Z",
-        documentType: ApprovalType.protection,
-        submittedBy: {
-          id: 1,
-          email: "surya.engineering@example.com",
-          name: "PT Surya Engineering",
-          division: Division.Vendor,
-        },
-        submittedById: 1,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-        version: 1,
-        approvals: [],
-        progress: "In Review",
-      },
-      {
-        id: 2,
-        name: "Layout_Plan_GI_Cibinong.pdf",
-        filePath: "/documents/layout-plan.pdf",
-        status: Status.approved,
-        overallDeadline: "2024-10-15T00:00:00.000Z",
-        documentType: ApprovalType.civil,
-        submittedBy: {
-          id: 1,
-          email: "surya.engineering@example.com",
-          name: "PT Surya Engineering",
-          division: Division.Vendor,
-        },
-        submittedById: 1,
-        reviewedBy: {
-          id: 2,
-          email: "technical@pln.co.id",
-          name: "Ahmad Technical Team",
-          division: Division.Engineer,
-        },
-        reviewedById: 2,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-03T00:00:00.000Z",
-        version: 1,
-        remarks: "Layout sudah sesuai standar PLN",
-        approvals: [
-          {
-            id: 1,
-            documentId: 2,
-            type: ApprovalType.civil,
-            approvedBy: {
-              id: 2,
-              email: "technical@pln.co.id",
-              name: "Ahmad Technical Team",
-              division: Division.Engineer,
-            },
-            approvedById: 2,
-            status: Status.approved,
-            notes: "Layout sudah sesuai standar PLN",
-            deadline: "2024-10-15T00:00:00.000Z",
-            createdAt: "2024-10-03T00:00:00.000Z",
-            updatedAt: "2024-10-03T00:00:00.000Z",
-          },
-        ],
-        progress: "Approved",
-      },
-      {
-        id: 3,
-        name: "Protection_System_Design.pdf",
-        filePath: "/documents/protection-design.pdf",
-        status: Status.inReviewEngineering,
-        overallDeadline: "2024-10-15T00:00:00.000Z",
-        documentType: ApprovalType.protection,
-        submittedBy: {
-          id: 1,
-          email: "surya.engineering@example.com",
-          name: "PT Surya Engineering",
-          division: Division.Vendor,
-        },
-        submittedById: 1,
-        createdAt: "2024-10-02T00:00:00.000Z",
-        updatedAt: "2024-10-02T00:00:00.000Z",
-        version: 1,
-        approvals: [],
-        progress: "In Review",
-      },
-    ],
-  },
-  {
-    user: {
-      id: 3,
-      email: "buana.teknik@example.com",
-      name: "PT Buana Teknik",
-      division: Division.Vendor,
-    },
-    projectTitle: "Substation Bekasi 70kV",
-    category: "Electrical",
-    priority: "medium",
-    reviewDeadline: "2024-10-12",
-    description:
-      "Upgrade substation 70kV di area Bekasi dengan penambahan bay baru",
-    documents: [
-      {
-        id: 4,
-        name: "SLD_Substation_Bekasi.pdf",
-        filePath: "/documents/sld-bekasi.pdf",
-        status: Status.approved,
-        overallDeadline: "2024-10-12T00:00:00.000Z",
-        documentType: ApprovalType.protection,
-        submittedBy: {
-          id: 3,
-          email: "buana.teknik@example.com",
-          name: "PT Buana Teknik",
-          division: Division.Vendor,
-        },
-        submittedById: 3,
-        reviewedBy: {
-          id: 2,
-          email: "technical@pln.co.id",
-          name: "Citra Technical Team",
-          division: Division.Engineer,
-        },
-        reviewedById: 2,
-        createdAt: "2024-09-28T00:00:00.000Z",
-        updatedAt: "2024-09-30T00:00:00.000Z",
-        version: 1,
-        remarks: "Diagram sudah sesuai dengan requirement",
-        approvals: [
-          {
-            id: 2,
-            documentId: 4,
-            type: ApprovalType.protection,
-            approvedBy: {
-              id: 2,
-              email: "technical@pln.co.id",
-              name: "Citra Technical Team",
-              division: Division.Engineer,
-            },
-            approvedById: 2,
-            status: Status.approved,
-            notes: "Diagram sudah sesuai dengan requirement",
-            deadline: "2024-10-12T00:00:00.000Z",
-            createdAt: "2024-09-30T00:00:00.000Z",
-            updatedAt: "2024-09-30T00:00:00.000Z",
-          },
-        ],
-        progress: "Approved",
-      },
-    ],
-  },
-];
-
-const currentUser: User = {
-  id: 2,
-  email: "technical@pln.co.id",
-  name: "Technical Team PLN",
-  division: Division.Engineer,
-};
+import { useAuth } from "@/context/AuthContext";
+import api from "@/lib/axios";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { isAxiosError } from "axios";
 
 export default function ApprovalPage() {
+  const { user: authUser, isLoading: authLoading, logout } = useAuth();
+  const router = useRouter();
+
+  const [vendorList, setVendorList] = useState<VendorData[]>([]);
   const [selectedVendor, setSelectedVendor] = useState<VendorData | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(
+    null
+  );
+
+  const [detailData, setDetailData] = useState<Document | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"new" | "results">("new");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [showApprovalWithNotesModal, setShowApprovalWithNotesModal] = useState(false);
-  const [showConfirmApprovalModal, setShowConfirmApprovalModal] = useState(false);
+  const [showApprovalWithNotesModal, setShowApprovalWithNotesModal] =
+    useState(false);
+  const [showConfirmApprovalModal, setShowConfirmApprovalModal] =
+    useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [approvalWithNotes, setApprovalWithNotes] = useState("");
+  const [, setApiError] = useState("");
+
+  const currentUser = useMemo(() => {
+    if (!authUser || !authUser.id) return null;
+
+    return {
+      id: authUser.id,
+      email: authUser.email,
+      name: authUser.name || "User",
+      division: authUser.division as Division,
+    };
+  }, [authUser]);
+
+  const loadDocuments = useCallback(async () => {
+    if (!currentUser) return;
+
+    const endpoint = activeTab === "new" ? "/documents" : "/documents/history";
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await api.get(endpoint);
+      const documents: Document[] = response.data;
+
+      const vendorsMap = new Map<number, VendorData>();
+
+      for (const doc of documents) {
+        if (!doc.submittedBy || typeof doc.submittedBy.id === "undefined")
+          continue;
+        const vendorId = doc.submittedBy.id;
+
+        if (!vendorsMap.has(vendorId)) {
+          vendorsMap.set(vendorId, {
+            user: doc.submittedBy,
+            projectTitle: doc.contract?.contractNumber || "Proyek Umum",
+            category: doc.documentType || "Umum",
+            priority: "medium", // Default
+            reviewDeadline: doc.overallDeadline || "N/A",
+            description: `Dokumen yang dikirim oleh ${doc.submittedBy.name}`,
+            documents: [],
+          });
+        }
+        vendorsMap.get(vendorId)!.documents.push(doc);
+      }
+
+      const groupedVendors = Array.from(vendorsMap.values());
+      setVendorList(groupedVendors);
+    } catch (err: unknown) {
+      if (isAxiosError<ApiErrorResponse>(err)) {
+        const message = err.response?.data?.message || "Gagal memuat dokumen.";
+        setApiError(message);
+      } else {
+        setApiError("Terjadi kesalahan yang tidak terduga. Silakan coba lagi.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, activeTab]);
+
+  useEffect(() => {
+    if (!authLoading && currentUser) {
+      loadDocuments();
+    }
+  }, [authLoading, currentUser, loadDocuments, activeTab]);
 
   // Filter functions
-  const filteredVendors = vendorData.filter((vendor) => {
+  const filteredVendors = vendorList.filter((vendor) => {
     const matchesSearch =
       vendor.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vendor.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -229,7 +145,11 @@ export default function ApprovalPage() {
           doc.status === Status.approved ||
           doc.status === Status.approvedWithNotes
       ).length,
-      rejected: documents.filter((doc) => doc.status === Status.rejected).length,
+      rejected: documents.filter(
+        (doc) =>
+          doc.status === Status.rejected ||
+          doc.status === Status.returnForCorrection
+      ).length,
     };
   };
 
@@ -268,51 +188,38 @@ export default function ApprovalPage() {
   };
 
   const getStatusText = (status: Status) => {
-    switch (status) {
-      case Status.submitted:
-        return "Submitted";
-      case Status.inReviewConsultant:
-        return "In Review Consultant";
-      case Status.inReviewEngineering:
-        return "In Review Engineering";
-      case Status.inReviewManager:
-        return "In Review Manager";
-      case Status.approved:
-        return "Approved";
-      case Status.approvedWithNotes:
-        return "Approved with Notes";
-      case Status.returnForCorrection:
-        return "Return for Correction";
-      case Status.rejected:
-        return "Rejected";
-      case Status.overdue:
-        return "Overdue";
-      default:
-        return status;
-    }
+    return status
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str) => str.toUpperCase());
   };
-
-  // const getCategoryColor = (category: string) => {
-  //   switch (category) {
-  //     case "Electrical":
-  //       return "bg-purple-100 text-purple-800";
-  //     case "Civil":
-  //       return "bg-orange-100 text-orange-800";
-  //     case "Mechanical":
-  //       return "bg-indigo-100 text-indigo-800";
-  //     default:
-  //       return "bg-blue-100 text-blue-800";
-  //   }
-  // };
 
   // Event handlers
   const handleVendorClick = (vendor: VendorData) => {
     setSelectedVendor(vendor);
   };
 
-  const handlePreviewDocument = (document: Document) => {
+  const handlePreviewDocument = async (document: Document) => {
     setSelectedDocument(document);
     setShowDetailModal(true);
+    setDetailLoading(true);
+    setDetailData(null);
+    setError(null);
+
+    try {
+      const response = await api.get(`/documents/${document.id}`);
+      setDetailData(response.data);
+    } catch (err: unknown) {
+      if (isAxiosError<ApiErrorResponse>(err)) {
+        const message =
+          err.response?.data?.message ||
+          "Gagal memuat detail dokumen. Silahkan tutup dan coba lagi.";
+        setApiError(message);
+      } else {
+        setApiError("Terjadi kesalahan yang tidak terduga. Silakan coba lagi.");
+      }
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const handleApproveDocument = (document: Document) => {
@@ -338,113 +245,158 @@ export default function ApprovalPage() {
     setShowRejectModal(false);
     setShowDetailModal(false);
     setSelectedDocument(null);
+    setDetailData(null);
     setRejectReason("");
     setApprovalWithNotes("");
+    setError(null);
+  };
+
+  // ✅ BARU: Handler terpadu untuk mengirim aksi ke backend
+  const handleActionSubmit = async (action: string, notes?: string) => {
+    if (!selectedDocument || !currentUser) return;
+
+    let endpoint = "";
+    if (currentUser.division === Division.Dalkon) {
+      endpoint = `/documents/${selectedDocument.id}/dalkon-review`;
+    } else if (currentUser.division === Division.Engineer) {
+      endpoint = `/documents/${selectedDocument.id}/engineering-review`;
+    } else if (currentUser.division === Division.Manager) {
+      endpoint = `/documents/${selectedDocument.id}/manager-review`;
+    } else {
+      setError(
+        "Hanya Dalkon, Engineer, atau Manager yang dapat melakukan aksi ini."
+      );
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await api.patch(endpoint, { action, notes });
+
+      alert(`Status dokumen "${selectedDocument.name}" telah diperbarui.`);
+
+      // Muat ulang data DAN kembali ke daftar vendor
+      await loadDocuments();
+      setSelectedVendor(null); // Kembali ke daftar vendor
+      closeModals();
+    } catch (err: unknown) {
+      const modalIsOpen =
+        showConfirmApprovalModal ||
+        showApprovalWithNotesModal ||
+        showRejectModal;
+
+      if (isAxiosError<ApiErrorResponse>(err)) {
+        const message =
+          err.response?.data?.message || "Gagal memperbarui dokumen.";
+        setApiError(message);
+
+        if (modalIsOpen) {
+          setError(message);
+        } else {
+          alert(message);
+        }
+      } else {
+        const message =
+          "Terjadi kesalahan yang tidak terduga. Silakan coba lagi.";
+        setApiError(message);
+
+        if (modalIsOpen) {
+          setError(message);
+        } else {
+          alert(message);
+        }
+      }
+
+      console.error("Error updating document:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirmApproval = () => {
-    if (selectedDocument && selectedVendor) {
-      const updatedDocuments = selectedVendor.documents.map((doc) =>
-        doc.id === selectedDocument.id
-          ? {
-              ...doc,
-              status: Status.approved,
-              remarks: "Approved by Technical Team PLN",
-              updatedAt: new Date().toISOString(),
-              reviewedBy: currentUser,
-              reviewedById: currentUser.id,
-            }
-          : doc
-      );
-
-      setSelectedVendor({
-        ...selectedVendor,
-        documents: updatedDocuments,
-      });
-
-      closeModals();
-    }
+    handleActionSubmit("approve");
   };
 
   const handleApprovalWithNotesSubmit = () => {
-    if (selectedDocument && selectedVendor && approvalWithNotes.trim()) {
-      const updatedDocuments = selectedVendor.documents.map((doc) =>
-        doc.id === selectedDocument.id
-          ? {
-              ...doc,
-              status: Status.approvedWithNotes,
-              remarks: approvalWithNotes,
-              updatedAt: new Date().toISOString(),
-              reviewedBy: currentUser,
-              reviewedById: currentUser.id,
-            }
-          : doc
-      );
-
-      setSelectedVendor({
-        ...selectedVendor,
-        documents: updatedDocuments,
-      });
-
-      closeModals();
+    if (!approvalWithNotes.trim()) {
+      alert("Notes wajib diisi untuk aksi ini.");
+      return;
     }
+    handleActionSubmit("approveWithNotes", approvalWithNotes);
   };
 
   const handleRejectSubmit = () => {
-    if (selectedDocument && selectedVendor && rejectReason.trim()) {
-      const updatedDocuments = selectedVendor.documents.map((doc) =>
-        doc.id === selectedDocument.id
-          ? {
-              ...doc,
-              status: Status.rejected,
-              remarks: rejectReason,
-              updatedAt: new Date().toISOString(),
-              reviewedBy: currentUser,
-              reviewedById: currentUser.id,
-            }
-          : doc
-      );
-
-      setSelectedVendor({
-        ...selectedVendor,
-        documents: updatedDocuments,
-      });
-
-      closeModals();
+    if (!rejectReason.trim()) {
+      alert("Alasan wajib diisi untuk aksi ini.");
+      return;
     }
+    // "Reject" di UI kita petakan ke "returnForCorrection" di backend
+    handleActionSubmit("returnForCorrection", rejectReason);
   };
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
+  if (authLoading || (loading && vendorList.length === 0)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f] flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f] flex items-center justify-center">
+        <Alert className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Please login to access this page.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
-      {/* ✅ Header Dinamis — hanya satu, di luar kondisi */}
-      {selectedDocument ? (
-        <Header
-          currentUser={currentUser}
-          title={`Review: ${selectedDocument.name}`}
-          onBack={() => setSelectedDocument(null)}
-          backLabel="Kembali"
-        />
-      ) : selectedVendor ? (
-        <Header
-          currentUser={currentUser}
-          title={`Dokumen: ${selectedVendor.projectTitle}`}
-          onBack={() => setSelectedVendor(null)}
-          backLabel="Kembali"
-        />
-      ) : (
-        <Header
-          currentUser={currentUser}
-          title="Technical Approval Dashboard"
-          backHref="/"
-          backLabel="kembali"
-        />
-      )}
+      <Header
+        currentUser={currentUser}
+        title={
+          selectedDocument
+            ? `Review: ${selectedDocument.name}`
+            : selectedVendor
+            ? `Dokumen: ${selectedVendor.projectTitle}`
+            : "Technical Approval Dashboard"
+        }
+        onBack={
+          selectedDocument
+            ? () => setSelectedDocument(null)
+            : selectedVendor
+            ? () => setSelectedVendor(null)
+            : undefined
+        }
+        backHref={!selectedVendor && !selectedDocument ? "/" : undefined}
+        backLabel="Kembali"
+        onLogout={handleLogout}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {error &&
+          !showDetailModal &&
+          !showConfirmApprovalModal &&
+          !showApprovalWithNotesModal &&
+          !showRejectModal && (
+            <Alert variant="destructive" className="mb-4 bg-red-100">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
         {!selectedVendor ? (
           // Vendor List View
           <>
-            {/* Page Header */}
             <div className="mb-4 sm:mb-6 p-4 sm:p-6 bg-white/80 backdrop-blur-sm rounded-xl shadow-md border border-white/20">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                 Technical Approval Dashboard
@@ -454,39 +406,44 @@ export default function ApprovalPage() {
               </p>
             </div>
 
+            {/* ✅ FIX: Mengaktifkan SearchAndFilter */}
             <SearchAndFilter
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
               filterStatus={filterStatus}
               setFilterStatus={setFilterStatus}
-              activeTab={"results"}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab} // Prop ini tidak ada di SearchAndFilter, tapi saya tambahkan di panggilannya
             />
 
             {/* Vendor Cards */}
             <div className="space-y-4 sm:space-y-6">
-              {filteredVendors.map((vendor) => (
-                <VendorCard
-                  key={vendor.user.id}
-                  vendor={vendor}
-                  onVendorClick={handleVendorClick}
-                  getPriorityColor={getPriorityColor}
-                  getDocumentCounts={getDocumentCounts}
-                />
-              ))}
+              {loading ? (
+                <div className="text-center py-8 text-white">Loading...</div>
+              ) : filteredVendors.length === 0 ? (
+                <Card className="shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
+                  <CardContent className="p-8 sm:p-12 text-center">
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                      No vendors found
+                    </h3>
+                    <p className="text-gray-600 text-sm sm:text-base">
+                      Tidak ada vendor yang sesuai dengan kriteria pencarian
+                      atau filter.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                filteredVendors.map((vendor) => (
+                  <VendorCard
+                    key={vendor.user.id}
+                    vendor={vendor}
+                    onVendorClick={handleVendorClick}
+                    getPriorityColor={getPriorityColor}
+                    getDocumentCounts={getDocumentCounts}
+                  />
+                ))
+              )}
             </div>
-
-            {filteredVendors.length === 0 && (
-              <Card className="shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
-                <CardContent className="p-8 sm:p-12 text-center">
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-                    No vendors found
-                  </h3>
-                  <p className="text-gray-600 text-sm sm:text-base">
-                    Tidak ada vendor yang sesuai dengan kriteria pencarian atau filter.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
           </>
         ) : (
           // Documents View
@@ -503,6 +460,8 @@ export default function ApprovalPage() {
                   onPreview={handlePreviewDocument}
                   getStatusColor={getStatusColor}
                   getStatusText={getStatusText}
+                  currentUser={currentUser}
+                  activeTab={activeTab}
                 />
               ))}
             </div>
@@ -510,7 +469,7 @@ export default function ApprovalPage() {
         )}
       </main>
 
-      {/* Modals — tambahkan pengecekan selectedDocument untuk keamanan */}
+      {/* Modals */}
       {showConfirmApprovalModal && selectedDocument && (
         <TechnicalApprovalModal
           selectedDocument={selectedDocument}
@@ -544,9 +503,10 @@ export default function ApprovalPage() {
         />
       )}
 
-      {showDetailModal && selectedDocument && (
+      {showDetailModal && (
         <DetailModal
-          selectedDocument={selectedDocument}
+          selectedDocument={detailData || selectedDocument}
+          isLoading={detailLoading}
           onClose={closeModals}
         />
       )}

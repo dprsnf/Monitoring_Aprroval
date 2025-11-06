@@ -1,5 +1,3 @@
-import { JSX } from "react";
-
 export enum Division {
   Manager = "Manager",
   Dalkon = "Dalkon",
@@ -37,7 +35,6 @@ export interface Contract {
   contractDate: string;
 }
 
-// ✅ BARU: Interface untuk riwayat versi file (patch)
 export interface DocumentVersion {
   id: string;
   filePath: string;
@@ -67,10 +64,9 @@ export interface Document {
   remarks?: string;
   approvals: Approval[];
 
-  // ✅ DIPERBARUI: Disesuaikan dengan schema.prisma
-  progress: string[]; // Diubah dari string?
-  latestVersion: number; // Diubah dari 'version'
-  versions: DocumentVersion[]; // Ditambahkan
+  progress: string[]; 
+  latestVersion: number; 
+  versions: DocumentVersion[]; 
 }
 
 export interface Approval {
@@ -86,6 +82,16 @@ export interface Approval {
   updatedAt: string;
 }
 
+export interface VendorData {
+  user: User;
+  projectTitle: string; // Akan diisi dengan nomor kontrak atau info lain
+  category: string;
+  priority: string;
+  reviewDeadline: string;
+  description: string;
+  documents: Document[];
+}
+
 export interface ApiErrorResponse {
   message: string;
 }
@@ -97,13 +103,13 @@ export interface FormErrors {
   confirmPassword?: string;
 }
 
-// Props untuk komponen yang menggunakan Document
-export interface DocumentListProps {
-  documents: Document[];
-  onDetailClick: (document: Document) => void;
-  onApproveClick: (document: Document) => void;
-  onRejectClick: (document: Document) => void;
-  getStatusBadge: (status: Status) => JSX.Element | null;
+export interface TechnicalApprovalModalProps {
+  selectedDocument: Document | null;
+  notes: string;
+  setNotes: (notes: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+  modalType: "approve" | "approveWithNotes" | "reject"; // reject akan jadi 'return'
 }
 
 export interface ModalProps {
@@ -112,4 +118,10 @@ export interface ModalProps {
   setManagementNotes: (notes: string) => void;
   onClose: () => void;
   onSubmit: () => void;
+}
+
+export interface DetailModalProps {
+  selectedDocument: Document | null;
+  isLoading: boolean;
+  onClose: () => void;
 }

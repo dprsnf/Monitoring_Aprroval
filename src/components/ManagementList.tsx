@@ -107,7 +107,7 @@ export default function ManagementList({
                   <div className="flex items-center gap-2">
                     <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-[#125d72]" />
                     <span>
-                      <strong>Version:</strong> {document.version}
+                      <strong>Version:</strong> {document.versions.length}
                     </span>
                   </div>
                 </div>
