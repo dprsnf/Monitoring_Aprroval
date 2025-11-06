@@ -1,5 +1,3 @@
-"use client"
-
 import DashboardCard from "./DashboardCard"
 import {
   Upload,
@@ -15,7 +13,7 @@ export default function DashboardGrid() {
       title: "Upload Drawing",
       description: "Melakukan Upload dokumen gambar",
       icon: Upload,
-      href: "/vendor-upload",
+      href: "documents/vendor-upload",
       color: "bg-gradient-to-br from-[#14a2ba] to-[#125d72]",
       iconColor: "text-white",
     },
@@ -23,7 +21,7 @@ export default function DashboardGrid() {
       title: "Approval Drawing",
       description: "Melakukan persetujuan gambar",
       icon: CheckCircle,
-      href: "/approval",
+      href: "documents/review-approval",
       color: "bg-gradient-to-br from-[#efe62f] to-[#f4d03f]",
       iconColor: "text-[#125d72]",
     },
@@ -31,7 +29,7 @@ export default function DashboardGrid() {
       title: "Upload Management",
       description: "Kelola dan review submission",
       icon: FileText,
-      href: "/upload-management",
+      href: "documents/review-management",
       color: "bg-gradient-to-br from-emerald-500 to-emerald-600",
       iconColor: "text-white",
     },
@@ -39,7 +37,7 @@ export default function DashboardGrid() {
       title: "Histori",
       description: "Histori hasil approval drawing",
       icon: History,
-      href: "/history",
+      href: "/approval-history",
       color: "bg-gradient-to-br from-purple-500 to-purple-600",
       iconColor: "text-white",
     },
@@ -47,7 +45,7 @@ export default function DashboardGrid() {
       title: "Progress Approval",
       description: "Lihat progres approval drawing",
       icon: Monitor,
-      href: "/progress",
+      href: "/approval-progress",
       color: "bg-gradient-to-br from-orange-500 to-orange-600",
       iconColor: "text-white",
     },

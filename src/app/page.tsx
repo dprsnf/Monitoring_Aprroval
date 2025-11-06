@@ -8,16 +8,16 @@ import { Division } from "./types"
 export default function Home() {
   const currentUser = {
     id: 0,
-    name: "Guest",
-    email: "guest@example.com",
-    division: Division.Dalkon,
+    name: "",
+    email: "",
+    division: Division.Vendor,
   }
 
   const handleLogout = () => console.log("Logout clicked")
 
   return (
     <div className="min-h-screen bg-[#14a2ba]">
-      <Header currentUser={currentUser} showLogo onLogout={handleLogout} />
+      <Header title="PLN UPT MANADO" currentUser={currentUser} showLogo onLogout={handleLogout} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Welcome Section */}
