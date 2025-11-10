@@ -226,7 +226,7 @@ export default function VendorUploadPage() {
       <Header
         title="Upload Drawing"
         currentUser={user}
-        backHref="/"
+        backHref="/dashboard"
         onLogout={logout}
       />
 

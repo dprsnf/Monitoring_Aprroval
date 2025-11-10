@@ -169,7 +169,7 @@ export default function HistoryPage() {
         <Header
           currentUser={currentUser}
           title="History & Reports System"
-          backHref="/"
+          backHref="/dashboard"
           backLabel="Dashboard"
           onLogout={() => {}}
         />
@@ -195,7 +195,7 @@ export default function HistoryPage() {
         <Header
           currentUser={currentUser}
           title="History & Reports System"
-          backHref="/"
+          backHref="/dashboard"
           backLabel="Dashboard"
           onLogout={() => {}}
         />
@@ -223,7 +223,7 @@ export default function HistoryPage() {
       <Header
         currentUser={currentUser}
         title="History & Reports System"
-        backHref="/"
+        backHref="/dashboard"
         backLabel="Dashboard"
         onLogout={() => console.log("Logout")}
       />

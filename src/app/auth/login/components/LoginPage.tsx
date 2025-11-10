@@ -38,7 +38,7 @@ export default function LoginPage() {
       const { accessToken, refreshToken } = response.data;
       Cookies.set("access_token", accessToken, { expires: 1, secure: true });
       Cookies.set("refresh_token", refreshToken, { expires: 7, secure: true });
-      router.push("/");
+      router.push("/dashboard");
     } catch (error: unknown) {
       if (isAxiosError<ApiErrorResponse>(error)) {
         const message =

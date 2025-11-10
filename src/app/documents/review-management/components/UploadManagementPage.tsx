@@ -209,7 +209,7 @@ export default function DocumentReviewPage() {
       <Header
         title="Upload Drawing"
         currentUser={authUser}
-        backHref="/"
+        backHref="/dashboard"
         onLogout={logout}
       />
 

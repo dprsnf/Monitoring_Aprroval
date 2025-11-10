@@ -1,95 +1,134 @@
-// import { NextResponse, type NextRequest } from 'next/server';
-// import { Division } from '@/app/types'; 
+// middleware.ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { jwtDecode } from "jwt-decode";
+import api from "@/lib/axios";
 
-// const rolePermissions: Record<Division, string[]> = {
-//   [Division.Vendor]: [
-//     '/vendor-upload', 
-//     '/history', 
-//     '/progress'
-//   ],
-//   [Division.Dalkon]: [
-//     '/upload-management', 
-//     '/history', 
-//     '/progress'
-//   ],
-//   [Division.Manager]: [
-//     '/upload-management', 
-//     '/history', 
-//     '/progress'
-//   ],
-//   [Division.Engineer]: [
-//     '/approval', 
-//     '/history', 
-//     '/progress'
-//   ],
-// };
+interface JwtPayload {
+  id: number;
+  name: string;
+  email: string;
+  division: "Vendor" | "Dalkon" | "Engineering" | "Manager";
+  exp: number;
+}
 
-// // Rute ini BISA diakses oleh siapa saja, termasuk GUEST.
-// const publicRoutes = [
-//   '/', 
-//   '/auth/login',
-// ];
+// DAFTAR ROUTE PER ROLE 
+const ROUTES = {
+  Vendor: [
+    "/documents/vendor-upload",
+    "/approval-history",
+    "/approval-progress",
+  ],
+  Engineering: [
+    "/documents/review-approval",
+    "/approval-history",
+    "/approval-progress",
+  ],
+  Dalkon: [
+    "/documents/review-management",
+    "/approval-history",
+    "/approval-progress",
+  ],
+  Manager: [
+    "/documents/review-management",
+    "/approval-history",
+    "/approval-progress",
+  ],
+};
 
-// // --- 3. Fungsi Middleware Utama ---
-// export async function middleware(request: NextRequest) {
-//   const { pathname } = request.nextUrl;
+const PUBLIC_ROUTES = ["/auth/login", "/auth/register"];
+const PROTECTED_ROUTES = [
+  "/dashboard",
+  "/documents",
+  "/approval-history",
+  "/approval-progress",
+  "/documents/vendor-upload",
+  "/documents/review-approval",
+  "/documents/review-management",
+];
 
-//   // --- BAGIAN A: Dapatkan Role User ---
-//   //
-//   // !!! PENTING: Ganti bagian ini dengan logika autentikasi Anda !!!
-//   //
-//   // Kode di bawah ini HANYA SIMULASI (menggunakan cookie 'user-role').
-//   // Di aplikasi nyata, Anda akan memverifikasi sesi (session)
-//   // menggunakan NextAuth, Iron Session, Lucia, atau library auth Anda.
-//   //
-//   // Contoh jika pakai NextAuth.js:
-//   // const session = await auth(); // (dari next-auth)
-//   // const userRole = session?.user?.division || Division.Guest;
-//   //
-//   // Simulasi (TIDAK AMAN, HANYA UNTUK CONTOH):
-//   const roleCookie = request.cookies.get('user-role');
-//   const userRole: Division = (roleCookie?.value as Division) || Division.Guest;
-//   //
-//   // !!! BATAS AKHIR BAGIAN YANG PERLU DIGANTI !!!
-//   //
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const accessToken = request.cookies.get("access_token")?.value;
+  const refreshToken = request.cookies.get("refresh_token")?.value;
 
+  //  Biarkan route publik
+  if (PUBLIC_ROUTES.includes(pathname)) {
+    return NextResponse.next();
+  }
 
-//   const isPublicRoute = publicRoutes.some(route => pathname === route);
-//   if (isPublicRoute) {
-//     // Jika ya, izinkan akses
-//     return NextResponse.next();
-//   }
+  //  Tidak ada token → login
+  if (!accessToken && !refreshToken) {
+    return redirectToLogin(request);
+  }
 
-//   if (userRole === Division.Guest) {
-//     const loginUrl = new URL('/login', request.url);
-//     loginUrl.searchParams.set('redirect_to', pathname);
-//     return NextResponse.redirect(loginUrl);
-//   }
+  //  Decode access token
+  let payload: JwtPayload | null = null;
+  if (accessToken) {
+    try {
+      payload = jwtDecode<JwtPayload>(accessToken);
+    } catch (error) {
+      console.error("Invalid token:", error);
+    }
+  }
 
-//   const allowedPaths = rolePermissions[userRole] || [];
-  
-//   // Gunakan startsWith agar rute seperti /history/123 tetap diizinkan
-//   const isAuthorized = allowedPaths.some(path => pathname.startsWith(path));
+  //  Token expired → refresh
+  if (!payload || payload.exp < Date.now() / 1000) {
+    if (!refreshToken) return redirectToLogin(request);
 
-//   if (isAuthorized) {
-//     // Izin diberikan, lanjutkan ke halaman
-//     return NextResponse.next();
-//   }
+    try {
+      const refreshResponse = await api.post(
+        "/auth/refresh",
+        { refreshToken },
+        {
+          headers: {
+            Cookie: `refresh_token=${refreshToken}`,
+          },
+        }
+      );
 
-//   console.warn(`Akses Ditolak: divisi ${userRole} ke ${pathname}`);
-//   const homeUrl = new URL('/', request.url);
-//   return NextResponse.redirect(homeUrl);
-// }
+      const { accessToken: newAccessToken } = refreshResponse.data;
 
-// export const config = {
-//   matcher: [
-//     /*
-//      * Cocokkan semua request path kecuali yang dimulai dengan:
-//      * - api (rute API)
-//      * - _next/static (file statis)
-//      * - _next/image (file optimasi gambar)
-//      * - favicon.ico (file favicon)
-//      */
-//     '/((?!api|_next/static|_next/image|favicon.ico).*)',
-//   ],
-// };
+      const response = NextResponse.next();
+      response.cookies.set("access_token", newAccessToken, {
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 15 * 60, // 15 menit
+      });
+
+      payload = jwtDecode<JwtPayload>(newAccessToken);
+      return response;
+    } catch (error: any) {
+      console.error("Refresh token gagal:", error.response?.data || error.message);
+      return redirectToLogin(request);
+    }
+  }
+
+  // ROLE-BASED ACCESS CONTROL
+  const { division } = payload;
+  const allowedRoutes = ROUTES[division];
+
+  if (allowedRoutes && !allowedRoutes.some((route) => pathname.startsWith(route))) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Protected route tanpa token → login
+  if (PROTECTED_ROUTES.some((route) => pathname.startsWith(route)) && !payload) {
+    return redirectToLogin(request);
+  }
+
+  return NextResponse.next();
+}
+
+function redirectToLogin(request: NextRequest) {
+  const loginUrl = new URL("/auth/login", request.url);
+  loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
+  return NextResponse.redirect(loginUrl);
+}
+
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|public/).*)",
+  ],
+};

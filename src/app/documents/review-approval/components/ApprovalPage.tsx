@@ -377,7 +377,7 @@ export default function ApprovalPage() {
             ? () => setSelectedVendor(null)
             : undefined
         }
-        backHref={!selectedVendor && !selectedDocument ? "/" : undefined}
+        backHref={!selectedVendor && !selectedDocument ? "/dashboard" : undefined}
         backLabel="Kembali"
         onLogout={handleLogout}
       />
