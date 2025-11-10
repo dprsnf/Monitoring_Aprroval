@@ -1,13 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { VendorHistory, HistoryDocument } from "@/app/types/documentTypes";
+import { useEffect, useState } from "react";
+import api from "@/lib/axios";
+import {
+  VendorHistory,
+  HistoryDocument,
+} from "@/app/types/documentTypes";
+
 import HistoryStatsCard from "./HistoryStatsCard";
 import HistorySearchFilter from "./HistorySearchFilter";
 import HistoryVendorCard from "./HistoryVendorCard";
 import HistoryVendorModal from "./HistoryVendorModal";
 import HistoryDocumentModal from "./HistoryDocumentModal";
-import { Building, CheckCircle, XCircle, Clock } from "lucide-react";
+
+import {
+  Building,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
+
 import { Card } from "@/components/ui/card";
 import Header from "@/components/common/Header";
 import { Division } from "@/app/types";
@@ -20,6 +33,10 @@ export default function HistoryPage() {
   const [showVendorModal, setShowVendorModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
 
+  const [historyData, setHistoryData] = useState<VendorHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const currentUser = {
     id: 0,
     name: "History Team",
@@ -27,219 +44,192 @@ export default function HistoryPage() {
     division: Division.Dalkon,
   };
 
-  const historyData: VendorHistory[] = [
-    {
-      id: "VH-001",
-      vendorName: "PT. Listrik Jaya",
-      company: "PT. Listrik Jaya Abadi",
-      projectTitle: "Gardu Induk Cibinong - Sistem Kelistrikan",
-      submissionDate: "2024-10-01 14:30",
-      category: "Electrical",
-      priority: "high",
-      finalStatus: "approved",
-      totalDocuments: 3,
-      approvedDocuments: 3,
-      rejectedDocuments: 0,
-      pendingDocuments: 0,
-      completionDate: "2024-10-02 16:30",
-      reviewer: "Ir. Ahmad Subandi",
-      description: "Proyek pembangunan gardu induk dengan kapasitas 150kV untuk wilayah Cibinong",
-      drawings: [
-        {
-          id: "DOC-001",
-          fileName: "Single_Line_Diagram_GI_Cibinong.pdf",
-          fileType: "PDF",
-          fileSize: "2.5 MB",
-          uploadDate: "2024-10-01 14:30",
-          status: "approved",
-          reviewDate: "2024-10-02 09:15",
-          reviewedBy: "Ir. Ahmad Subandi",
-          description: "Diagram satu garis sistem kelistrikan gardu induk",
-          category: "Electrical",
-          priority: "high",
-          reviewNotes: "Dokumen telah sesuai dengan standar PLN dan dapat disetujui untuk implementasi."
-        },
-        {
-          id: "DOC-002",
-          fileName: "Protection_Scheme_150kV.pdf",
-          fileType: "PDF",
-          fileSize: "1.8 MB",
-          uploadDate: "2024-10-01 14:35",
-          status: "approved",
-          reviewDate: "2024-10-02 10:20",
-          reviewedBy: "Ir. Ahmad Subandi",
-          description: "Skema proteksi untuk sistem 150kV",
-          category: "Electrical",
-          priority: "high",
-          reviewNotes: "Skema proteksi sudah sesuai dengan standar IEEE dan PLN."
-        },
-        {
-          id: "DOC-003",
-          fileName: "Equipment_Layout_GI.pdf",
-          fileType: "PDF",
-          fileSize: "3.2 MB",
-          uploadDate: "2024-10-01 14:40",
-          status: "approved",
-          reviewDate: "2024-10-02 11:45",
-          reviewedBy: "Ir. Ahmad Subandi",
-          description: "Layout peralatan di gardu induk",
-          category: "Electrical",
-          priority: "medium",
-          reviewNotes: "Layout peralatan telah memenuhi clearance dan standar keamanan."
-        }
-      ]
-    },
-    {
-      id: "VH-002",
-      vendorName: "CV. Konstruksi Prima",
-      company: "CV. Konstruksi Prima Indonesia",
-      projectTitle: "Foundation Design - Tower Transmisi 500kV",
-      submissionDate: "2024-09-30 16:45",
-      category: "Civil",
-      priority: "high",
-      finalStatus: "rejected",
-      totalDocuments: 2,
-      approvedDocuments: 0,
-      rejectedDocuments: 2,
-      pendingDocuments: 0,
-      completionDate: "2024-10-01 15:30",
-      reviewer: "Ir. Siti Nurhaliza",
-      description: "Desain pondasi untuk tower transmisi 500kV jalur Surabaya-Jakarta",
-      drawings: [
-        {
-          id: "DOC-004",
-          fileName: "Foundation_Design_500kV.pdf",
-          fileType: "PDF",
-          fileSize: "4.1 MB",
-          uploadDate: "2024-09-30 16:45",
-          status: "rejected",
-          reviewDate: "2024-10-01 11:20",
-          reviewedBy: "Ir. Siti Nurhaliza",
-          description: "Desain pondasi tower transmisi 500kV",
-          category: "Civil",
-          priority: "high",
-          reviewNotes: "Perhitungan beban angin tidak sesuai dengan standar SNI. Perlu revisi untuk kondisi angin ekstrem."
-        },
-        {
-          id: "DOC-005",
-          fileName: "Soil_Investigation_Report.pdf",
-          fileType: "PDF",
-          fileSize: "2.8 MB",
-          uploadDate: "2024-09-30 16:50",
-          status: "rejected",
-          reviewDate: "2024-10-01 12:45",
-          reviewedBy: "Ir. Siti Nurhaliza",
-          description: "Laporan investigasi tanah lokasi tower",
-          category: "Civil",
-          priority: "high",
-          reviewNotes: "Data SPT tidak mencukupi untuk analisis daya dukung. Perlu penambahan titik boring."
-        }
-      ]
-    },
-    {
-      id: "VH-003",
-      vendorName: "PT. Teknik Elektro",
-      company: "PT. Teknik Elektro Nusantara",
-      projectTitle: "Electrical Panel Layout - Substation A",
-      submissionDate: "2024-09-29 10:15",
-      category: "Electrical",
-      priority: "medium",
-      finalStatus: "under_review",
-      totalDocuments: 4,
-      approvedDocuments: 2,
-      rejectedDocuments: 0,
-      pendingDocuments: 2,
-      reviewer: "Ir. Bambang Sutrisno",
-      description: "Layout panel listrik untuk gardu distribusi 20kV wilayah Jakarta Selatan",
-      drawings: [
-        {
-          id: "DOC-006",
-          fileName: "Panel_Layout_20kV.pdf",
-          fileType: "PDF",
-          fileSize: "2.1 MB",
-          uploadDate: "2024-09-29 10:15",
-          status: "approved",
-          reviewDate: "2024-09-30 14:20",
-          reviewedBy: "Ir. Bambang Sutrisno",
-          description: "Layout panel distribusi 20kV",
-          category: "Electrical",
-          priority: "medium",
-          reviewNotes: "Layout panel sudah sesuai standar PLN SPLN."
-        },
-        {
-          id: "DOC-007",
-          fileName: "Wiring_Diagram_Control.pdf",
-          fileType: "PDF",
-          fileSize: "1.6 MB",
-          uploadDate: "2024-09-29 10:20",
-          status: "approved",
-          reviewDate: "2024-09-30 15:10",
-          reviewedBy: "Ir. Bambang Sutrisno",
-          description: "Diagram pengawatan sistem kontrol",
-          category: "Electrical",
-          priority: "medium",
-          reviewNotes: "Diagram pengawatan sudah benar dan lengkap."
-        },
-        {
-          id: "DOC-008",
-          fileName: "Protection_Settings.pdf",
-          fileType: "PDF",
-          fileSize: "1.2 MB",
-          uploadDate: "2024-09-29 10:25",
-          status: "under_review",
-          description: "Setting proteksi relay",
-          category: "Electrical",
-          priority: "medium"
-        },
-        {
-          id: "DOC-009",
-          fileName: "Equipment_Specifications.pdf",
-          fileType: "PDF",
-          fileSize: "2.9 MB",
-          uploadDate: "2024-09-29 10:30",
-          status: "under_review",
-          description: "Spesifikasi peralatan panel",
-          category: "Electrical",
-          priority: "low"
-        }
-      ]
-    }
-  ];
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const filteredData = historyData.filter(vendor => {
-    const matchesSearch = vendor.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          vendor.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          vendor.company.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === "all" || vendor.finalStatus === filterStatus;
-    return matchesSearch && matchesFilter;
+        const { data } = await api.get("/documents/history");  
+
+        const mapped: VendorHistory[] = data.map((doc: any) => {
+          const latestVersion = doc.versions[0] ?? {};
+          const finalApproval = (doc.approvals ?? [])[0] ?? {};
+
+          /* finalStatus */
+          const finalStatus: "approved" | "rejected" =
+            doc.status === "rejected"
+              ? "rejected"
+              : "approved"; // approvedWithNotes → approved
+
+          /* hitung docs */
+          const totalDocs = doc.versions.length;
+          const approvedDocs = doc.versions.filter((v: any) =>
+            (v.approvals ?? []).some(
+              (a: any) =>
+                a.status === "approved" || a.status === "approvedWithNotes"
+            )
+          ).length;
+          const rejectedDocs = doc.versions.filter((v: any) =>
+            (v.approvals ?? []).some((a: any) => a.status === "rejected")
+          ).length;
+          const pendingDocs = totalDocs - approvedDocs - rejectedDocs;
+
+          return {
+            id: `VH-${doc.id}`,
+            vendorName: doc.submittedBy?.name ?? "Unknown",
+            company:
+              doc.submittedBy?.email?.split("@")[0] ?? "Unknown Company",
+            projectTitle: doc.name,
+            submissionDate: doc.createdAt,
+            category:
+              doc.documentType === "protection" ? "Protection" : "Civil",
+            priority: "high", // bisa ditambah di DB
+            finalStatus,
+            totalDocuments: totalDocs,
+            approvedDocuments: approvedDocs,
+            rejectedDocuments: rejectedDocs,
+            pendingDocuments: pendingDocs,
+            completionDate: finalApproval.createdAt ?? doc.updatedAt,
+            reviewer: finalApproval.approvedBy?.name ?? "Unknown",
+            description: `Dokumen ${doc.documentType} – kontrak ${
+              doc.contract?.contractNumber ?? "N/A"
+            }`,
+            drawings: doc.versions.map((v: any, idx: number) => {
+              const va = (v.approvals ?? [])[0] ?? {};
+              return {
+                id: `DOC-${v.id}`,
+                fileName: `${doc.name}_v${v.version}.pdf`,
+                fileType: "PDF",
+                fileSize: "0 MB", // optional di DB
+                uploadDate: v.createdAt,
+                status:
+                  va.status === "rejected"
+                    ? "rejected"
+                    : va.status === "approvedWithNotes"
+                    ? "approved"
+                    : "approved",
+                reviewDate: va.createdAt,
+                reviewedBy: va.approvedBy?.name,
+                description: `Versi ${v.version} – ${doc.name}`,
+                category:
+                  doc.documentType === "protection" ? "Protection" : "Civil",
+                priority: "high",
+                reviewNotes: va.notes,
+              };
+            }),
+          };
+        });
+
+        setHistoryData(mapped);
+      } catch (err: any) {
+        const msg =
+          err.response?.data?.message ||
+          err.message ||
+          "Gagal memuat riwayat dokumen.";
+        setError(msg);
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, []);
+
+  /* ---------- FILTER ---------- */
+  const filteredData = historyData.filter((v) => {
+    const matchSearch =
+      v.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.company.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchFilter = filterStatus === "all" || v.finalStatus === filterStatus;
+    return matchSearch && matchFilter;
   });
 
-  const totalVendors = historyData.length;
-  const approvedVendors = historyData.filter(v => v.finalStatus === "approved").length;
-  const rejectedVendors = historyData.filter(v => v.finalStatus === "rejected").length;
-  const pendingVendors = historyData.filter(v => v.finalStatus === "under_review" || v.finalStatus === "pending").length;
+  /* ---------- STATS ---------- */
+  const totalVendors = filteredData.length;
+  const approvedVendors = filteredData.filter((v) => v.finalStatus === "approved").length;
+  const rejectedVendors = filteredData.filter((v) => v.finalStatus === "rejected").length;
+  const inReviewVendors = 0; // history = selesai
 
+  /* ---------- HANDLER MODAL ---------- */
   const openVendorDetail = (vendor: VendorHistory) => {
     setSelectedVendor(vendor);
     setShowVendorModal(true);
   };
-
-  const openDocumentDetail = (document: HistoryDocument) => {
-    setSelectedDocument(document);
+  const openDocumentDetail = (doc: HistoryDocument) => {
+    setSelectedDocument(doc);
     setShowDocumentModal(true);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
+        <Header
+          currentUser={currentUser}
+          title="History & Reports System"
+          backHref="/"
+          backLabel="Dashboard"
+          onLogout={() => {}}
+        />
+        <main className="max-w-7xl mx-auto p-6">
+          <Card className="p-12 text-center">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-4" />
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-20 bg-gray-100 rounded" />
+                ))}
+              </div>
+            </div>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
+        <Header
+          currentUser={currentUser}
+          title="History & Reports System"
+          backHref="/"
+          backLabel="Dashboard"
+          onLogout={() => {}}
+        />
+        <main className="max-w-7xl mx-auto p-6">
+          <Card className="p-8 text-center bg-red-50 border-red-200">
+            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-red-800 mb-2">
+              Terjadi Kesalahan
+            </h3>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-5 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Muat Ulang
+            </button>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
       <Header
         currentUser={currentUser}
         title="History & Reports System"
-        backHref="/dashboard"
+        backHref="/"
         backLabel="Dashboard"
-        onLogout={() => console.log("Logout clicked")}
+        onLogout={() => console.log("Logout")}
       />
+
       <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
-        {/* Stats */}
+        {/* ==== STATS ==== */}
         <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
           <HistoryStatsCard
             icon={Building}
@@ -264,13 +254,14 @@ export default function HistoryPage() {
           />
           <HistoryStatsCard
             icon={Clock}
-            iconColor="text-yellow-600"
-            bgColor="bg-gradient-to-br from-yellow-100 to-yellow-50"
+            iconColor="text-gray-600"
+            bgColor="bg-gradient-to-br from-gray-100 to-gray-50"
             label="In Review"
-            value={pendingVendors}
+            value={inReviewVendors}
           />
         </div>
 
+        {/* ==== SEARCH & FILTER ==== */}
         <HistorySearchFilter
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -278,12 +269,13 @@ export default function HistoryPage() {
           onFilterChange={setFilterStatus}
         />
 
+        {/* ==== LIST ==== */}
         {filteredData.length > 0 ? (
           <div className="grid gap-3 sm:gap-4 lg:gap-6">
-            {filteredData.map((vendor) => (
+            {filteredData.map((v) => (
               <HistoryVendorCard
-                key={vendor.id}
-                vendor={vendor}
+                key={v.id}
+                vendor={v}
                 onViewDetails={openVendorDetail}
               />
             ))}
@@ -291,34 +283,34 @@ export default function HistoryPage() {
         ) : (
           <Card className="bg-white/95 backdrop-blur border-0 shadow-md">
             <div className="p-6 sm:p-8 lg:p-12 text-center">
-              <div className="text-gray-400 mb-4 sm:mb-6">
-                <Clock className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 mx-auto" />
-              </div>
-              <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 mb-2">No History Found</h3>
-              <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto">
-                No vendor history matches your current search criteria.
+              <Clock className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Tidak Ada Riwayat
+              </h3>
+              <p className="text-gray-600 max-w-md mx-auto mb-4">
+                Tidak ditemukan dokumen selesai yang cocok dengan filter.
               </p>
               <button
                 onClick={() => {
                   setSearchTerm("");
                   setFilterStatus("all");
                 }}
-                className="mt-4 px-4 py-2 bg-[#14a2ba] text-white rounded-lg hover:bg-[#125d72]"
+                className="px-4 py-2 bg-[#14a2ba] text-white rounded hover:bg-[#125d72]"
               >
-                Clear Filters
+                Reset Filter
               </button>
             </div>
           </Card>
         )}
       </main>
 
+      {/* ==== MODALS ==== */}
       <HistoryVendorModal
         open={showVendorModal}
         onOpenChange={setShowVendorModal}
         vendor={selectedVendor}
         onDocumentClick={openDocumentDetail}
       />
-
       <HistoryDocumentModal
         open={showDocumentModal}
         onOpenChange={setShowDocumentModal}

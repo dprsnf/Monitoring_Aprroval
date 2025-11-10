@@ -23,7 +23,7 @@ export default function Home() {
         {/* Welcome Section */}
         <div className="mb-6 sm:mb-8 text-center p-4 sm:p-8 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/30">
           <h2 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-2">
-            Dashboard Approval PLN
+            Dashboard Approval PLN  
           </h2>
           <p className="text-gray-700 text-sm sm:text-lg">
             PT PLN (Persero) UPT Manado - Sistem Monitoring & Approval Drawing
