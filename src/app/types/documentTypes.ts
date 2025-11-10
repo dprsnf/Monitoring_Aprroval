@@ -1,3 +1,45 @@
+export enum Division {
+  Dalkon = "Dalkon",
+  Engineering = "Engineering",
+  Manager = "Manager",
+  Vendor = "Vendor",
+}
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  division: Division;
+}
+
+export interface Approval {
+  id: number;
+  status: "inReviewEngineering" | "returnForCorrection" | "approved" | "approvedWithNotes" | "rejected";
+  notes?: string;
+  createdAt: string;
+  approvedBy?: User;
+}
+
+export interface Version {
+  id: number;
+  version: number;
+  createdAt: string;
+  approvals?: Approval[];
+}
+
+export interface Document {
+  id: number;
+  name: string;
+  documentType: "protection" | "civil";
+  createdAt: string;
+  submittedBy: User;
+  contract?: {
+    contractNumber: string;
+  };
+  versions: Version[];
+  approvals?: Approval[];
+}
+
 export interface HistoryDocument {
     id: string;
     fileName: string;
