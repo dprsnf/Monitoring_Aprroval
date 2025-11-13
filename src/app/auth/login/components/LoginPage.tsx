@@ -11,7 +11,6 @@ import { ApiErrorResponse, FormErrors } from "@/app/types";
 import api from "@/lib/axios";
 import Cookies from "js-cookie";
 import { isAxiosError } from "axios";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
@@ -21,7 +20,6 @@ export default function LoginPage() {
   const [apiError, setApiError] = useState("");
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +36,7 @@ export default function LoginPage() {
       const { accessToken, refreshToken } = response.data;
       Cookies.set("access_token", accessToken, { expires: 1, secure: true });
       Cookies.set("refresh_token", refreshToken, { expires: 7, secure: true });
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (error: unknown) {
       if (isAxiosError<ApiErrorResponse>(error)) {
         const message =

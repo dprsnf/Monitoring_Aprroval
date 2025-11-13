@@ -1,21 +1,24 @@
 "use client";
 
 import type React from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "@/lib/axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ProjectInfoForm from "@/components/ProjectInfoForm";
 import FileDropzone from "@/components/file/FileDropZone";
 import UploadedFilesList from "@/components/file/UploadFileList";
-import FileReviewList from "@/components/FileReviewList";
+import FileReviewList from "@/components/file/FileReviewList";
 import AdditionalNotes from "@/components/AdditionalNotes";
 import SubmitSection from "@/components/SubmitSection";
 import type { UploadedFile, UploadFormData } from "@/app/types/uploadFIle";
 import Header from "@/components/common/Header";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, X } from "lucide-react";
+import { AlertCircle, Loader2, X } from "lucide-react";
 import { isAxiosError } from "axios";
 import { ApiErrorResponse } from "@/app/types";
+import ResubmitItem from "@/components/file/ResubmmitItem";
+import { Button } from "@/components/ui/button";
+// import PDFModal from "@/components/PDFModal";
 
 type FileForUpload = UploadedFile & {
   file: File;
@@ -30,6 +33,8 @@ export default function VendorUploadPage() {
   const submitSectionRef = useRef<HTMLDivElement>(null);
   const { user, isLoading, logout } = useAuth();
   const [apiError, setApiError] = useState("");
+  const [resubmitDocs, setResubmitDocs] = useState<any[]>([]);
+  const [isLoadingResubmit, setIsLoadingResubmit] = useState(false);
 
   const [formData, setFormData] = useState<UploadFormData>({
     projectTitle: "",
@@ -77,21 +82,19 @@ export default function VendorUploadPage() {
     if (uploadedFiles.length === 1) setShowReviewStep(false);
   };
 
+  const [pdfModalFile, setPdfModalFile] = useState<File | null>(null);
+
   const handlePreviewFile = (fileId: string) => {
-    const file = uploadedFiles.find((f) => f.id === fileId);
-    if (file) {
-      // Implementation preview (img or pdf)
-      if (
-        file.file.type.startsWith("image/") ||
-        file.file.type === "application/pdf"
-      ) {
-        const fileURL = URL.createObjectURL(file.file);
-        window.open(fileURL, "_blank");
-      } else {
-        alert(
-          `Preview file: ${file.name}\n\nTipe file ini (${file.file.type}) mungkin tidak bisa ditampilkan langsung di browser.`
-        );
-      }
+    const fileObj = uploadedFiles.find((f) => f.id === fileId);
+    if (!fileObj) return;
+
+    if (fileObj.file.type === "application/pdf") {
+      setPdfModalFile(fileObj.file);
+    } else if (fileObj.file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(fileObj.file);
+      window.open(url, "_blank");
+    } else {
+      alert(`Tipe file tidak didukung untuk preview: ${fileObj.file.type}`);
     }
   };
 
@@ -213,6 +216,33 @@ export default function VendorUploadPage() {
     }
   };
 
+  const fetchResubmitDocs = async () => {
+    setIsLoadingResubmit(true);
+    try {
+      const response = await api.get("/documents");
+      const docs = response.data;
+
+      // Filter hanya dokumen yang bisa di-resubmit
+      const canResubmit = docs.filter(
+        (doc: any) =>
+          ["returnForCorrection", "approvedWithNotes"].includes(doc.status) &&
+          doc.submittedById === user?.id
+      );
+
+      setResubmitDocs(canResubmit);
+    } catch (error) {
+      console.error("Failed to fetch resubmit docs", error);
+    } finally {
+      setIsLoadingResubmit(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchResubmitDocs();
+    }
+  }, [user]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#14a2ba]">
@@ -238,7 +268,21 @@ export default function VendorUploadPage() {
           <p className="text-gray-700 text-sm sm:text-base">
             Upload dan submit drawing teknis untuk review dan approval PLN
           </p>
+          <div className="flex justify-end mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchResubmitDocs}
+              disabled={isLoadingResubmit}
+            >
+              {isLoadingResubmit ? "Memuat..." : "Refresh"}
+            </Button>
+          </div>
         </div>
+
+        {/* {pdfModalFile && (
+          <PDFModal file={pdfModalFile} onClose={() => setPdfModalFile(null)} />
+        )} */}
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <Card className="shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
@@ -257,6 +301,37 @@ export default function VendorUploadPage() {
               />
             </CardContent>
           </Card>
+          {resubmitDocs.length > 0 && (
+            <Card className="shadow-xl bg-yellow-50/80 backdrop-blur-sm border border-yellow-300 mb-6">
+              <CardHeader className="px-6 border-b border-yellow-300">
+                <CardTitle className="text-black font-semibold text-lg flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  Dokumen Perlu Revisi / Resubmit
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6">
+                <p className="text-sm text-gray-700 mb-4">
+                  Berikut adalah dokumen yang telah{" "}
+                  <strong>dikembalikan untuk diperbaiki</strong> atau{" "}
+                  <strong>disetujui dengan catatan</strong>. Silakan upload
+                  versi terbaru.
+                </p>
+
+                <div className="space-y-4">
+                  {resubmitDocs.map((doc) => (
+                    <ResubmitItem
+                      key={doc.id}
+                      doc={doc}
+                      onResubmitSuccess={() => {
+                        fetchResubmitDocs(); // Refresh list
+                        alert(`Dokumen "${doc.name}" berhasil di-resubmit!`);
+                      }}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
             <CardHeader className="px-6 border-b border-gray-300">

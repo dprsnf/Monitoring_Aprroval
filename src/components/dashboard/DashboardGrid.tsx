@@ -41,7 +41,7 @@ export default function DashboardGrid() {
         iconColor: "text-white",
       },
     ],
-    Engineering: [
+    Engineer: [
       {
         title: "Approval Drawing",
         description: "Melakukan persetujuan gambar",

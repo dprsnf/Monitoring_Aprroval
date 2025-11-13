@@ -10,7 +10,7 @@ interface DocumentCardProps {
   onDetailClick: (doc: Document) => void
   onReviewClick: (doc: Document) => void
   onReturnClick: (doc: Document) => void
-  onRejectClick: (doc: Document) => void
+  // onRejectClick: (doc: Document) => void
 }
 
 export default function DocumentCard({
@@ -20,7 +20,7 @@ export default function DocumentCard({
   onDetailClick,
   onReviewClick,
   onReturnClick,
-  onRejectClick,
+  // onRejectClick,
 }: DocumentCardProps) {
   return (
     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-white/20 p-6 hover:shadow-lg transition-shadow">
@@ -114,7 +114,7 @@ export default function DocumentCard({
                 Return
               </Button>
 
-              {currentUser?.division === Division.Dalkon &&
+              {/* {currentUser?.division === Division.Dalkon &&
                 doc.status === Status.submitted && (
                   <Button
                     onClick={() => onRejectClick(doc)}
@@ -125,7 +125,7 @@ export default function DocumentCard({
                     <XCircle className="w-4 h-4 mr-2" />
                     Reject
                   </Button>
-                )}
+                )} */}
             </>
           )}
         </div>

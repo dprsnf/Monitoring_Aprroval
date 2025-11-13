@@ -36,6 +36,7 @@ export interface Contract {
 }
 
 export interface DocumentVersion {
+  fileUrl: string;
   id: string;
   filePath: string;
   version: number;
@@ -113,11 +114,11 @@ export interface TechnicalApprovalModalProps {
 }
 
 export interface ModalProps {
-  selectedDocument: Document | null;
+  selectedDocument: Document;
   managementNotes: string;
   setManagementNotes: (notes: string) => void;
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: () => void; 
 }
 
 export interface DetailModalProps {

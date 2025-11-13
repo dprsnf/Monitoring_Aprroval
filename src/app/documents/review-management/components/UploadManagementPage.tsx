@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Clock,
   CheckCircle,
   Download,
   XCircle,
   AlertCircle,
-  HardDrive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,25 +22,25 @@ import DocumentCardSkeleton from "./DocumentCardSkeleton";
 import FilterSection from "./FilterSection";
 import WorkflowHeader from "./WorkflowHeader";
 import { isAxiosError } from "axios";
+import ApprovalModal from "@/components/modal/ApprovalModal";
+import RejectModal from "@/components/modal/RejectModal";
 
 export default function DocumentReviewPage() {
   const { user: authUser, isLoading: authLoading, logout } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(
-    null
-  );
-  const [, setApiError] = useState("");
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [detailData, setDetailData] = useState<Document | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [, setShowApprovalModal] = useState(false);
-  const [, setShowRejectModal] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const [managementNotes, setManagementNotes] = useState("");
   const [activeTab, setActiveTab] = useState<"new" | "results">("new");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const currentUser = useMemo(() => {
     if (!authUser) return null;
@@ -65,11 +64,9 @@ export default function DocumentReviewPage() {
       setDocuments(response.data);
     } catch (err: unknown) {
       if (isAxiosError<ApiErrorResponse>(err)) {
-        const message =
-          err.response?.data?.message || "Gagal memuat dokumen.";
-        setApiError(message);
+        setError(err.response?.data?.message || "Gagal memuat dokumen.");
       } else {
-        setApiError("Terjadi kesalahan yang tidak terduga. Silakan coba lagi.");
+        setError("Terjadi kesalahan yang tidak terduga.");
       }
     } finally {
       setLoading(false);
@@ -89,40 +86,65 @@ export default function DocumentReviewPage() {
     setSelectedDocument(null);
     setDetailData(null);
     setManagementNotes("");
+    setError(null);
   }, []);
 
-
-
-  const handleRejectSubmit = useCallback(
-    async (docToReject: Document) => {
-      if (!currentUser || currentUser.division !== Division.Dalkon) return;
+  // === APPROVE: Forward ke Tim Teknis ===
+  const handleReviewSubmit = useCallback(
+    async (notes: string) => {
+      if (!selectedDocument || !currentUser || currentUser.division !== Division.Dalkon) return;
 
       try {
         setLoading(true);
         setError(null);
 
-        await api.patch(`/documents/${docToReject.id}/dalkon-review`, {
-          action: "reject",
+        await api.patch(`/documents/${selectedDocument.id}/dalkon-review`, {
+          action: "approve",
+          notes,
         });
 
-        alert(`❌ Dokumen "${docToReject.name}" ditolak.`);
+        alert(`Dokumen "${selectedDocument.name}" berhasil diteruskan ke Tim Teknis.`);
         await loadDocuments();
         closeModals();
       } catch (err: unknown) {
-        if (isAxiosError<ApiErrorResponse>(err)) {
-          const message =
-            err.response?.data?.message || "Gagal untuk menolak dokumen.";
-          setApiError(message);
-        } else {
-          setApiError(
-            "Terjadi kesalahan yang tidak terduga. Silakan coba lagi."
-          );
-        }
+        const msg = isAxiosError<ApiErrorResponse>(err)
+          ? err.response?.data?.message ?? "Gagal meneruskan dokumen."
+          : "Terjadi kesalahan.";
+        setError(msg);
       } finally {
         setLoading(false);
       }
     },
-    [currentUser, loadDocuments, closeModals]
+    [selectedDocument, currentUser, loadDocuments, closeModals]
+  );
+
+  // === REJECT: Return for Correction ===
+  const handleReturnSubmit = useCallback(
+    async (notes: string) => {
+      if (!selectedDocument || !currentUser || currentUser.division !== Division.Dalkon) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        await api.patch(`/documents/${selectedDocument.id}/dalkon-review`, {
+          action: "reject",
+          notes,
+        });
+
+        alert(`Dokumen "${selectedDocument.name}" dikembalikan untuk perbaikan.`);
+        await loadDocuments();
+        closeModals();
+      } catch (err: unknown) {
+        const msg = isAxiosError<ApiErrorResponse>(err)
+          ? err.response?.data?.message ?? "Gagal mengembalikan dokumen."
+          : "Terjadi kesalahan.";
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [selectedDocument, currentUser, loadDocuments, closeModals]
   );
 
   const handleDetailClick = useCallback(async (document: Document) => {
@@ -137,12 +159,9 @@ export default function DocumentReviewPage() {
       setDetailData(response.data);
     } catch (err: unknown) {
       if (isAxiosError<ApiErrorResponse>(err)) {
-        const message =
-          err.response?.data?.message ||
-          "Gagal memuat detail dokumen. Tolong tutup dan coba lagi";
-        setApiError(message);
+        setError(err.response?.data?.message || "Gagal memuat detail dokumen.");
       } else {
-        setApiError("Terjadi kesalahan yang tidak terduga. Silakan coba lagi.");
+        setError("Terjadi kesalahan yang tidak terduga.");
       }
     } finally {
       setDetailLoading(false);
@@ -161,25 +180,10 @@ export default function DocumentReviewPage() {
     setShowRejectModal(true);
   }, []);
 
-  const handleRejectClick = useCallback(
-    (document: Document) => {
-      if (
-        window.confirm(
-          `Yakin ingin menolak dokumen "${document.name}"? Tindakan ini tidak dapat dibatalkan.`
-        )
-      ) {
-        handleRejectSubmit(document);
-      }
-    },
-    [handleRejectSubmit]
-  );
-
   const filteredData = documents.filter((doc) => {
     const matchesSearch =
       doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (doc.submittedBy?.name || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+      (doc.submittedBy?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (doc.documentType || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === "all" || doc.status === filterStatus;
     return matchesSearch && matchesFilter;
@@ -206,12 +210,7 @@ export default function DocumentReviewPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
-      <Header
-        title="Upload Drawing"
-        currentUser={authUser}
-        backHref="/dashboard"
-        onLogout={logout}
-      />
+      <Header title="Upload Drawing" currentUser={authUser} backHref="/dashboard" onLogout={logout} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && !showDetailModal && (
@@ -228,9 +227,7 @@ export default function DocumentReviewPage() {
             <Button
               onClick={() => setActiveTab("new")}
               className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                activeTab === "new"
-                  ? "bg-[#125d72] text-white shadow-md"
-                  : "bg-transparent text-gray-700 hover:bg-gray-100"
+                activeTab === "new" ? "bg-[#125d72] text-white shadow-md" : "bg-transparent text-gray-700 hover:bg-gray-100"
               }`}
             >
               <div className="flex items-center justify-center gap-2">
@@ -241,9 +238,7 @@ export default function DocumentReviewPage() {
             <Button
               onClick={() => setActiveTab("results")}
               className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                activeTab === "results"
-                  ? "bg-[#125d72] text-white shadow-md"
-                  : "bg-transparent text-gray-700 hover:bg-gray-100"
+                activeTab === "results" ? "bg-[#125d72] text-white shadow-md" : "bg-transparent text-gray-700 hover:bg-gray-100"
               }`}
             >
               <div className="flex items-center justify-center gap-2">
@@ -254,25 +249,15 @@ export default function DocumentReviewPage() {
           </div>
         </div>
 
-        <FilterSection
-          searchTerm={searchTerm}
-          filterStatus={filterStatus}
-          onSearchChange={setSearchTerm}
-          onFilterChange={setFilterStatus}
-        />
+        <FilterSection searchTerm={searchTerm} filterStatus={filterStatus} onSearchChange={setSearchTerm} onFilterChange={setFilterStatus} />
 
         <div className="space-y-4">
           {loading ? (
-            // Skeleton loading untuk daftar dokumen
-            Array.from({ length: 3 }).map((_, index) => (
-              <DocumentCardSkeleton key={index} />
-            ))
+            Array.from({ length: 3 }).map((_, index) => <DocumentCardSkeleton key={index} />)
           ) : filteredData.length === 0 ? (
             <div className="text-center py-8 bg-white/80 rounded-xl">
               <p className="text-gray-600">
-                {activeTab === "new"
-                  ? "No new documents found."
-                  : "No document history found."}
+                {activeTab === "new" ? "No new documents found." : "No document history found."}
               </p>
             </div>
           ) : (
@@ -285,166 +270,119 @@ export default function DocumentReviewPage() {
                 onDetailClick={handleDetailClick}
                 onReviewClick={handleReviewClick}
                 onReturnClick={handleReturnClick}
-                onRejectClick={handleRejectClick}
               />
             ))
           )}
         </div>
       </main>
 
-      {/* Modal Detail */}
+      {/* === DETAIL MODAL === */}
       {showDetailModal && selectedDocument && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white p-6 border-b z-10">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-2xl font-bold">Document Details</h3>
-                  <p className="text-sm text-gray-500">
-                    {selectedDocument.name}
-                  </p>
-                </div>
-                <Button
-                  onClick={closeModals}
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full"
-                >
-                  <XCircle className="w-6 h-6 text-gray-400" />
-                </Button>
+          <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="sticky top-0 bg-white p-6 border-b z-10 flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-bold">Document Details</h3>
+                <p className="text-sm text-gray-500">{selectedDocument.name}</p>
               </div>
+              <Button onClick={closeModals} variant="ghost" size="icon">
+                <XCircle className="w-6 h-6 text-gray-400" />
+              </Button>
             </div>
 
-            {detailLoading ? (
-              <div className="p-6 space-y-4">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-4 w-36" />
-                <Skeleton className="h-20 w-full" />
-              </div>
-            ) : error ? (
-              <div className="p-10 text-center text-red-600">{error}</div>
-            ) : detailData ? (
-              <div className="p-6">
+            <div className="flex-1 overflow-auto p-6">
+              {detailLoading ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <Skeleton className="h-8 w-48" />
+                  <Skeleton className="h-32 w-full" />
+                </div>
+              ) : detailData ? (
+                <div ref={contentRef} className="space-y-6 bg-white p-6 rounded-lg border">
+                  <h4 className="text-lg font-bold">Informasi Dokumen</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="font-semibold text-gray-700">Status:</p>
+                      <p className="font-medium text-gray-700">Status:</p>
                       <StatusBadge status={detailData.status} />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-700">
-                        Submitted By:
-                      </p>
-                      <p className="text-gray-900">
-                        {detailData.submittedBy?.name} (
-                        {detailData.submittedBy?.email})
-                      </p>
+                      <p className="font-medium text-gray-700">Submitted By:</p>
+                      <p>{detailData.submittedBy?.name}</p>
                     </div>
                     {detailData.contract && (
                       <div>
-                        <p className="font-semibold text-gray-700">
-                          Contract Number:
-                        </p>
-                        <p className="text-gray-900">
-                          {detailData.contract.contractNumber}
-                        </p>
+                        <p className="font-medium text-gray-700">Contract:</p>
+                        <p>{detailData.contract.contractNumber}</p>
                       </div>
                     )}
                     {detailData.remarks && (
                       <div>
-                        <p className="font-semibold text-gray-700">Remarks:</p>
-                        <p className="text-gray-900">{detailData.remarks}</p>
+                        <p className="font-medium text-gray-700">Remarks:</p>
+                        <p>{detailData.remarks}</p>
                       </div>
                     )}
                   </div>
 
                   {detailData.versions && detailData.versions.length > 0 && (
                     <div>
-                      <p className="font-semibold text-gray-700 mb-2">
-                        File Versions:
-                      </p>
-                      <div className="space-y-3">
+                      <p className="font-medium text-gray-700 mb-2">File Versions:</p>
+                      <div className="space-y-2">
                         {detailData.versions
                           .sort((a, b) => b.version - a.version)
                           .map((version) => (
-                            <div
-                              key={version.id}
-                              className="relative flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
-                            >
-                              <div className="flex items-center gap-3">
-                                <HardDrive className="w-5 h-5 text-gray-500" />
-                                <div>
-                                  <p className="font-semibold text-gray-800">
-                                    Version {version.version}
-                                    {version.version ===
-                                      detailData.latestVersion && (
-                                      <Badge className="ml-2 bg-blue-100 text-blue-800">
-                                        Latest
-                                      </Badge>
-                                    )}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    Uploaded by {version.uploadedBy?.name} on{" "}
-                                    {new Date(
-                                      version.createdAt
-                                    ).toLocaleDateString()}
-                                  </p>
-                                </div>
+                            <div key={version.id} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                              <div>
+                                <span className="font-medium">V{version.version}</span>
+                                {version.version === detailData.latestVersion && (
+                                  <Badge className="ml-2 text-xs">Latest</Badge>
+                                )}
+                                <p className="text-xs text-gray-500">
+                                  {new Date(version.createdAt).toLocaleDateString()}
+                                </p>
                               </div>
-                              <Button variant="outline" size="sm">
-                                <Download className="w-4 h-4 mr-2" />
-                                Download
+                              <Button size="sm" variant="outline" onClick={() => window.open(version.fileUrl, "_blank")}>
+                                <Download className="w-3 h-3" />
                               </Button>
                             </div>
                           ))}
                       </div>
                     </div>
                   )}
-
-                  {detailData.approvals && detailData.approvals.length > 0 && (
-                    <div>
-                      <p className="font-semibold text-gray-700 mb-2">
-                        Approval History:
-                      </p>
-                      <div className="space-y-3 border-l-2 border-gray-200 pl-4">
-                        {detailData.approvals.map((approval) => (
-                          <div key={approval.id} className="relative">
-                            <div className="absolute -left-[21px] top-1.5 w-3 h-3 bg-gray-300 rounded-full border-2 border-white"></div>
-                            <p className="text-sm text-gray-600">
-                              <span className="font-semibold text-gray-800">
-                                {approval.approvedBy?.name}
-                              </span>
-                            </p>
-                            <StatusBadge status={approval.status} />
-                            {approval.notes && (
-                              <p className="text-sm text-gray-700 mt-1 p-2 bg-gray-50 rounded-md border">
-                                {approval.notes}
-                              </p>
-                            )}
-                            <p className="text-xs text-gray-500 mt-1">
-                              {new Date(approval.createdAt).toLocaleString()}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </div>
-            ) : null}
+              ) : (
+                <p className="text-red-500">Gagal memuat detail dokumen.</p>
+              )}
+            </div>
 
             <div className="sticky bottom-0 bg-gray-50 p-4 border-t flex justify-end">
               <Button onClick={closeModals} variant="outline">
-                Close
+                Tutup
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Approval dan Reject tetap sama seperti sebelumnya */}
-      {/* ... (kode modal approval dan reject tetap sama) */}
+      {/* === APPROVAL MODAL === */}
+      {showApprovalModal && selectedDocument && (
+        <ApprovalModal
+          selectedDocument={selectedDocument}
+          managementNotes={managementNotes}
+          setManagementNotes={setManagementNotes}
+          onClose={closeModals}
+          onSubmit={() => handleReviewSubmit(managementNotes)}
+        />
+      )}
+
+      {/* === REJECT MODAL === */}
+      {showRejectModal && selectedDocument && (
+        <RejectModal
+          selectedDocument={selectedDocument}
+          managementNotes={managementNotes}
+          setManagementNotes={setManagementNotes}
+          onClose={closeModals}
+          onSubmit={() => handleReturnSubmit(managementNotes)}
+        />
+      )}
     </div>
   );
 }
