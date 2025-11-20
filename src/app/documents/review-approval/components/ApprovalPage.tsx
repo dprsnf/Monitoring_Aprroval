@@ -342,7 +342,7 @@ export default function ApprovalPage() {
 
   if (authLoading || (loading && vendorList.length === 0)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f] flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f] flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
       </div>
     );
@@ -350,7 +350,7 @@ export default function ApprovalPage() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f] flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f] flex items-center justify-center">
         <Alert className="max-w-md">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>Please login to access this page.</AlertDescription>
@@ -360,7 +360,7 @@ export default function ApprovalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
+    <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
       <Header
         currentUser={currentUser}
         title={

@@ -20,7 +20,7 @@ export default function DashboardGrid() {
         title: "Upload Drawing",
         description: "Melakukan Upload dokumen gambar",
         icon: Upload,
-        href: "/documents/vendor-upload",
+        href: "/upload-drawing",
         color: "bg-gradient-to-br from-[#14a2ba] to-[#125d72]",
         iconColor: "text-white",
       },

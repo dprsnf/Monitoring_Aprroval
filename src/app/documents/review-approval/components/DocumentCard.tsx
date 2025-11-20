@@ -12,7 +12,8 @@ import {
   Download,
   CheckCircle,
   XCircle,
-  MessageSquare, // <-- Pastikan ini di-import
+  MessageSquare,
+  Send, // <-- Pastikan ini di-import
 } from "lucide-react";
 import { Document, Status, Division, User } from "@/app/types";
 import DocumentViewerModal from "./DocumentViewerModal"; // <-- Import modal baru
@@ -94,7 +95,7 @@ export default function DocumentCard({
                   </h4>
                   <Badge
                     className={`${getStatusColor(
-                      document.status,
+                      document.status
                     )} whitespace-nowrap`}
                   >
                     {getStatusText(document.status)}
@@ -138,7 +139,7 @@ export default function DocumentCard({
                       <p className="text-xs text-gray-500 mt-2">
                         Reviewed by {document.reviewedBy.name} on{" "}
                         {new Date(document.updatedAt).toLocaleDateString(
-                          "id-ID",
+                          "id-ID"
                         )}
                       </p>
                     )}
@@ -177,22 +178,36 @@ export default function DocumentCard({
                   </Button>
 
                   {/* Logika tombol-tombol approval */}
+                  {/* Logika tombol-tombol approval */}
                   {activeTab === "new" && canReview && (
                     <>
+                      {/* DALKON: Forward atau Return */}
                       {currentUser?.division === Division.Dalkon &&
                         (document.status === Status.submitted ||
                           document.status === Status.approvedWithNotes) && (
-                          <Button
-                            onClick={() => onApprove(document)}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-2"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            {document.status === Status.submitted
-                              ? "Forward to Engineer"
-                              : "Forward to Manager"}
-                          </Button>
+                          <>
+                            <Button
+                              onClick={() => onApprove(document)}
+                              className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-2"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              {document.status === Status.submitted
+                                ? "Forward to Engineer"
+                                : "Forward to Manager"}
+                            </Button>
+
+                            {/* BARU: Return for Correction (ORANYE) */}
+                            <Button
+                              onClick={() => onReject(document)} // tetap pakai onReject → modal sama
+                              className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm mt-2"
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Return for Correction
+                            </Button>
+                          </>
                         )}
 
+                      {/* ENGINEER: Approve, Approve with Notes, Return */}
                       {currentUser?.division === Division.Engineer &&
                         document.status === Status.inReviewEngineering && (
                           <>
@@ -203,6 +218,7 @@ export default function DocumentCard({
                               <CheckCircle className="w-4 h-4 mr-2" />
                               Approve
                             </Button>
+
                             <Button
                               onClick={() => onApproveWithNotes(document)}
                               className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
@@ -210,27 +226,51 @@ export default function DocumentCard({
                               <MessageSquare className="w-4 h-4 mr-2" />
                               Approve with Notes
                             </Button>
+
+                            {/* BARU: Return for Correction (ORANYE) */}
+                            <Button
+                              onClick={() => onReject(document)}
+                              className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm mt-2"
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Return for Correction
+                            </Button>
                           </>
                         )}
 
+                      {/* MANAGER: Approve atau Return */}
                       {currentUser?.division === Division.Manager &&
                         document.status === Status.inReviewManager && (
-                          <Button
-                            onClick={() => onApprove(document)}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-2"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Approve
-                          </Button>
+                          <>
+                            <Button
+                              onClick={() => onApprove(document)}
+                              className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-2"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Approve
+                            </Button>
+
+                            {/* BARU: Return for Correction (ORANYE) */}
+                            <Button
+                              onClick={() => onReject(document)}
+                              className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm mt-2"
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Return for Correction
+                            </Button>
+                          </>
                         )}
 
-                      <Button
-                        onClick={() => onReject(document)}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white text-sm mt-2"
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Return (Reject)
-                      </Button>
+                      {/* OPTIONAL: Kalau mau tetap ada tombol Reject (final reject) */}
+                      {/* 
+    <Button
+      onClick={() => onReject(document)}
+      className="w-full bg-red-600 hover:bg-red-700 text-white text-sm mt-2"
+    >
+      <XCircle className="w-4 h-4 mr-2" />
+      Reject Permanently
+    </Button>
+    */}
                     </>
                   )}
                 </div>

@@ -21,17 +21,24 @@ const api = axios.create({
 // Add a request interceptor to include the access token
 api.interceptors.request.use(
   (config) => {
-    const token = getCookieValue("access_token");
+    // 1. Kalau di browser → ambil dari cookie seperti biasa
+    if (typeof window !== "undefined") {
+      const cookies = document.cookie.split(";").reduce((acc, c) => {
+        const [key, val] = c.trim().split("=");
+        acc[key] = val;
+        return acc;
+      }, {} as Record<string, string>);
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      const token = cookies["access_token"];
+      if (token) config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // 2. Kalau di server → token akan di-inject manual dari cookies() di page.tsx
+    //    (lihat kode page.tsx di bawah)
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default api;

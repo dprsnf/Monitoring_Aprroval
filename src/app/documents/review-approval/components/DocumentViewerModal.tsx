@@ -7,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,10 +16,10 @@ import {
   ChevronRight,
   Download,
   Trash2,
+  Pencil,
+  Eraser,
 } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
-
-// CSS bawaan react-pdf tetap diperlukan untuk styling dasar Page
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
@@ -48,6 +47,7 @@ interface DocumentViewerModalProps {
   documentName: string;
   isOpen: boolean;
   onClose: () => void;
+  onSave?: (blob: Blob) => void; // ← UNTUK LANGSUNG SUBMIT REVISI
 }
 
 export default function DocumentViewerModal({
@@ -55,6 +55,7 @@ export default function DocumentViewerModal({
   documentName,
   isOpen,
   onClose,
+  onSave,
 }: DocumentViewerModalProps) {
   const [pdfFile, setPdfFile] = useState<ArrayBuffer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,17 +67,15 @@ export default function DocumentViewerModal({
   const currentPathRef = useRef<Point[]>([]);
   const [tool, setTool] = useState<"pencil" | "eraser">("pencil");
   const [color, setColor] = useState("#ff0000");
-  const [thickness, setThickness] = useState(3);
+  const [thickness, setThickness] = useState(4);
   const canvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
 
   const loadFile = useCallback(async () => {
     if (!documentId || !isOpen) return;
     setIsLoading(true);
     setError(null);
-    setPageNumber(1);
-    setNumPages(0);
     setAnnotations([]);
-    currentPathRef.current = [];
+    setPageNumber(1);
     Object.values(canvasRefs.current).forEach((c) =>
       c?.getContext("2d")?.clearRect(0, 0, c.width, c.height)
     );
@@ -87,7 +86,7 @@ export default function DocumentViewerModal({
       });
       setPdfFile(data);
     } catch (err) {
-      setError("Gagal memuat dokumen.");
+      setError("Gagal memuat dokumen. Pastikan file tersedia.");
     } finally {
       setIsLoading(false);
     }
@@ -95,15 +94,15 @@ export default function DocumentViewerModal({
 
   useEffect(() => {
     if (isOpen) loadFile();
-    return () => setPdfFile(null);
+    return () => {
+      setPdfFile(null);
+      setAnnotations([]);
+    };
   }, [isOpen, loadFile]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
   };
-
-  const goToPrevPage = () => setPageNumber((p) => Math.max(p - 1, 1));
-  const goToNextPage = () => setPageNumber((p) => Math.min(p + 1, numPages));
 
   const startDrawing = (
     e: React.MouseEvent<HTMLCanvasElement>,
@@ -122,37 +121,28 @@ export default function DocumentViewerModal({
     if (!isDrawing) return;
     const canvas = canvasRefs.current[page];
     const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
+    if (!ctx || !canvas) return;
 
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const newPoint = { x, y };
+    currentPathRef.current.push({ x, y });
 
-    const path = currentPathRef.current;
-    if (path.length === 0) return;
-
-    const lastPoint = path[path.length - 1];
-
+    const last = currentPathRef.current[currentPathRef.current.length - 2];
     ctx.globalCompositeOperation =
       tool === "eraser" ? "destination-out" : "source-over";
     ctx.lineWidth = thickness;
-    ctx.strokeStyle = tool === "eraser" ? "#000000" : color;
+    ctx.strokeStyle = tool === "eraser" ? "#000" : color;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-
     ctx.beginPath();
-    ctx.moveTo(lastPoint.x, lastPoint.y);
-    ctx.lineTo(newPoint.x, newPoint.y);
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(x, y);
     ctx.stroke();
-
-    currentPathRef.current.push(newPoint);
   };
 
   const stopDrawing = (page: number) => {
-    const path = currentPathRef.current;
-
-    if (!isDrawing || path.length < 2) {
+    if (!isDrawing || currentPathRef.current.length < 2) {
       currentPathRef.current = [];
       setIsDrawing(false);
       return;
@@ -161,7 +151,13 @@ export default function DocumentViewerModal({
     if (tool === "pencil") {
       setAnnotations((prev) => [
         ...prev,
-        { page, type: "draw", path: path, color, thickness },
+        {
+          page,
+          type: "draw",
+          path: [...currentPathRef.current],
+          color,
+          thickness,
+        },
       ]);
     }
 
@@ -176,8 +172,6 @@ export default function DocumentViewerModal({
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.globalCompositeOperation = "source-over";
-
     annotations
       .filter((a) => a.page === page)
       .forEach((ann) => {
@@ -186,238 +180,227 @@ export default function DocumentViewerModal({
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.beginPath();
-        ann.path.forEach((p, i) => {
-          i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
-        });
+        ann.path.forEach((p, i) =>
+          i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)
+        );
         ctx.stroke();
       });
   };
 
-  const handleSaveAndDownload = async () => {
-    if (!pdfFile) return;
+  const handleSave = async () => {
+    if (!pdfFile || annotations.length === 0) return;
     setIsLoading(true);
 
     try {
       const pdfDoc = await PDFDocument.load(pdfFile);
       const pages = pdfDoc.getPages();
 
-      for (let i = 0; i < pages.length; i++) {
-        const page = pages[i];
-        const pageNum = i + 1;
-        const canvas = canvasRefs.current[pageNum];
-        const hasAnnotation = annotations.some((a) => a.page === pageNum);
-        if (!canvas || !hasAnnotation) continue;
+      for (const ann of annotations) {
+        const page = pages[ann.page - 1];
+        if (!page) continue;
 
-        const { width: pdfWidth, height: pdfHeight } = page.getSize();
+        const canvas = canvasRefs.current[ann.page];
+        if (!canvas) continue;
 
+        const { width, height } = page.getSize();
         const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = pdfWidth;
-        tempCanvas.height = pdfHeight;
+        tempCanvas.width = width;
+        tempCanvas.height = height;
         const tempCtx = tempCanvas.getContext("2d");
         if (!tempCtx) continue;
 
-        const scaleX = pdfWidth / canvas.width;
-        const scaleY = pdfHeight / canvas.height;
+        const scaleX = width / canvas.width;
+        const scaleY = height / canvas.height;
         tempCtx.scale(scaleX, scaleY);
+        tempCtx.lineWidth = ann.thickness;
+        tempCtx.strokeStyle = ann.color;
+        tempCtx.lineCap = "round";
+        tempCtx.lineJoin = "round";
+        tempCtx.beginPath();
+        ann.path.forEach((p, i) =>
+          i === 0 ? tempCtx.moveTo(p.x, p.y) : tempCtx.lineTo(p.x, p.y)
+        );
+        tempCtx.stroke();
 
-        annotations
-          .filter((a) => a.page === pageNum)
-          .forEach((ann) => {
-            tempCtx.lineWidth = ann.thickness;
-            tempCtx.strokeStyle = ann.color;
-            tempCtx.lineCap = "round";
-            tempCtx.lineJoin = "round";
-            tempCtx.beginPath();
-            ann.path.forEach((p, i) => {
-              i === 0 ? tempCtx.moveTo(p.x, p.y) : tempCtx.lineTo(p.x, p.y);
-            });
-            tempCtx.stroke();
-          });
-
-        const pngUrl = tempCanvas.toDataURL("image/png");
-        const pngImage = await pdfDoc.embedPng(pngUrl);
-        page.drawImage(pngImage, {
-          x: 0,
-          y: 0,
-          width: pdfWidth,
-          height: pdfHeight,
-        });
+        const png = await pdfDoc.embedPng(tempCanvas.toDataURL());
+        page.drawImage(png, { x: 0, y: 0, width, height });
       }
 
       const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([new Uint8Array(pdfBytes)], {
+      const blob = new Blob([pdfBytes as BlobPart], {
         type: "application/pdf",
       });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${documentName.replace(/[^a-z0-9]/gi, "_")}_annotated.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+
+      if (onSave) {
+        onSave(blob); // ← LANGSUNG SUBMIT KE PARENT (VendorUploadPage)
+        onClose();
+      } else {
+        // Fallback: download biasa
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${documentName}_revisi.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
-      console.error("Gagal menyimpan anotasi:", err);
-      alert("Gagal menyimpan anotasi.");
+      console.error(err);
+      alert("Gagal menyimpan revisi PDF.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const clearAnnotations = () => {
+  const clearAll = () => {
     setAnnotations([]);
-    Object.values(canvasRefs.current).forEach((c) => {
-      if (c) c.getContext("2d")?.clearRect(0, 0, c.width, c.height);
-    });
+    Object.values(canvasRefs.current).forEach((c) =>
+      c?.getContext("2d")?.clearRect(0, 0, c.width, c.height)
+    );
   };
 
   if (!isOpen) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="h-[90vh] w-full max-w-6xl p-0">
-        <DialogHeader className="border-b p-4">
-          <div className="flex items-center justify-between w-full">
-            <div>
-              <DialogTitle className="truncate max-w-md">
-                {documentName}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-gray-500">
-                Coret-coret dan simpan PDF.
-              </DialogDescription>
+      <DialogContent className="max-w-7xl h-[95vh] p-0 overflow-hidden">
+        <DialogHeader className="border-b bg-white p-4 flex flex-row items-center justify-between">
+          <div>
+            <DialogTitle className="text-xl font-bold">
+              {documentName}
+            </DialogTitle>
+            <p className="text-sm text140 text-gray-500">
+              Coret-coret lalu submit revisi
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Tools */}
+            <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2">
+              <Button
+                size="icon"
+                variant={tool === "pencil" ? "default" : "ghost"}
+                onClick={() => setTool("pencil")}
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant={tool === "eraser" ? "default" : "ghost"}
+                onClick={() => setTool("eraser")}
+              >
+                <Eraser className="w-4 h-4" />
+              </Button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex border rounded-md">
-                <Button
-                  size="icon"
-                  variant={tool === "pencil" ? "default" : "ghost"}
-                  onClick={() => setTool("pencil")}
-                  className="rounded-r-none"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </Button>
-                <Button
-                  size="icon"
-                  variant={tool === "eraser" ? "default" : "ghost"}
-                  onClick={() => setTool("eraser")}
-                  className="rounded-l-none"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    <path d="M15 9l-6 6m0-6l6 6" />
-                  </svg>
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-1 border rounded-md p-1">
-                {["#ff0000", "#0000ff", "#00ff00", "#000000"].map((c) => (
+            {/* Warna */}
+            <div className="flex gap-1">
+              {["#ff0000", "#0000ff", "#00ff00", "#000000", "#ffa500"].map(
+                (c) => (
                   <button
                     key={c}
                     onClick={() => setColor(c)}
                     className={cn(
-                      "w-6 h-6 rounded-full border-2 transition-all",
+                      "w-9 h-9 rounded-full border-2 transition-all",
                       color === c
-                        ? "border-gray-800 scale-110"
+                        ? "border-gray-900 scale-110 ring-2 ring-offset-2 ring-gray-400"
                         : "border-gray-300"
                     )}
                     style={{ backgroundColor: c }}
                   />
-                ))}
-              </div>
-
-              <div className="flex items-center gap-1 border rounded-md p-1">
-                {[2, 4, 6, 8].map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setThickness(t)}
-                    className={cn(
-                      "w-6 h-6 rounded-full flex items-center justify-center transition-all",
-                      thickness === t ? "bg-primary text-white" : "bg-gray-200"
-                    )}
-                  >
-                    <div
-                      className="bg-current rounded-full"
-                      style={{ width: t, height: t }}
-                    />
-                  </button>
-                ))}
-              </div>
-
-              <Button size="sm" variant="outline" onClick={clearAnnotations}>
-                <Trash2 className="w-4 h-4 mr-1" /> Clear
-              </Button>
-              <Button
-                size="sm"
-                variant="default"
-                onClick={handleSaveAndDownload}
-                disabled={isLoading || annotations.length === 0}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4 mr-1" />
-                )}
-                Save
-              </Button>
+                )
+              )}
             </div>
+
+            {/* Ketebalan */}
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+              {[3, 5, 8, 12].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setThickness(t)}
+                  className={cn(
+                    "w-9 h-9 rounded-full flex items-center justify-center",
+                    thickness === t ? "bg-primary text-white" : "bg-white"
+                  )}
+                >
+                  <div
+                    className="bg-current rounded-full"
+                    style={{ width: t, height: t }}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <Button size="sm" variant="outline" onClick={clearAll}>
+              <Trash2 className="w-4 h-4 mr-1" />
+              Clear
+            </Button>
+
+            <Button
+              size="sm"
+              variant="default"
+              className="bg-green-600 hover:bg-green-700"
+              onClick={handleSave}
+              disabled={isLoading || annotations.length === 0}
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              {onSave ? "Submit Revisi" : "Download"}
+            </Button>
+
+            <Button size="icon" variant="ghost" onClick={onClose}>
+              <X className="w-5 h-5" />
+            </Button>
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto bg-gray-100 p-4">
+        <div className="flex-1 overflow-auto bg-gray-50 p-6">
           {isLoading && !pdfFile && (
             <div className="flex h-full items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin" />
+              <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
             </div>
           )}
-          {error && <p className="p-4 text-center text-red-600">{error}</p>}
 
-          {pdfFile && !error && (
+          {error && (
+            <div className="text-center text-red-600 p-8">
+              <p className="text-xl font-semibold">{error}</p>
+            </div>
+          )}
+
+          {pdfFile && (
             <Document file={pdfFile} onLoadSuccess={onDocumentLoadSuccess}>
               <div className="flex justify-center">
-                <div className="relative inline-block shadow-lg">
+                <div className="relative shadow-2xl bg-white">
                   <Page
                     pageNumber={pageNumber}
-                    width={800}
-                    className="border"
+                    width={900}
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
                     onRenderSuccess={() => {
-                      requestAnimationFrame(() => {
-                        const pdfCanvas = document.querySelector(
-                          `.react-pdf__Page[data-page-number="${pageNumber}"] canvas`
-                        ) as HTMLCanvasElement | null;
-                        if (!pdfCanvas) return;
-
+                      setTimeout(() => {
+                        const pageEl = document.querySelector(
+                          `.react-pdf__Page[data-page-number="${pageNumber}"]`
+                        );
+                        const canvas = pageEl?.querySelector("canvas");
                         const overlay = canvasRefs.current[pageNumber];
-                        if (!overlay) return;
 
-                        const rect = pdfCanvas.getBoundingClientRect();
-                        overlay.width = rect.width;
-                        overlay.height = rect.height;
-                        overlay.style.width = `${rect.width}px`;
-                        overlay.style.height = `${rect.height}px`;
-
-                        redrawAnnotations(pageNumber);
-                      });
+                        if (canvas && overlay) {
+                          overlay.width = canvas.width;
+                          overlay.height = canvas.height;
+                          overlay.style.width = canvas.width + "px";
+                          overlay.style.height = canvas.height + "px";
+                          redrawAnnotations(pageNumber);
+                        }
+                      }, 150);
                     }}
                   />
                   <canvas
                     ref={(el) => {
-                      if (el) canvasRefs.current[pageNumber] = el;
+                      canvasRefs.current[pageNumber] = el;
                     }}
-                    className="absolute left-0 top-0 cursor-crosshair pointer-events-auto z-50"
+                    className="absolute top-0 left-0 cursor-crosshair z-50"
                     style={{ background: "transparent" }}
                     onMouseDown={(e) => startDrawing(e, pageNumber)}
                     onMouseMove={(e) => draw(e, pageNumber)}
@@ -431,27 +414,27 @@ export default function DocumentViewerModal({
         </div>
 
         {numPages > 0 && (
-          <DialogFooter className="border-t bg-gray-50 p-3 flex justify-between items-center">
-            section-separator:{" "}
+          <DialogFooter className="border-t bg-white p-4 justify-between">
             <p className="text-sm text-gray-600">
-              Halaman {pageNumber} dari {numPages}
+              Halaman <strong>{pageNumber}</strong> dari{" "}
+              <strong>{numPages}</strong>
             </p>
             <div className="flex gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={goToPrevPage}
+                onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
                 disabled={pageNumber <= 1}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="w-4 h-4" />
               </Button>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={goToNextPage}
+                onClick={() => setPageNumber((p) => Math.min(numPages, p + 1))}
                 disabled={pageNumber >= numPages}
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </DialogFooter>
