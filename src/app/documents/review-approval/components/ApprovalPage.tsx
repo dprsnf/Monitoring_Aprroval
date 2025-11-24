@@ -12,7 +12,6 @@ import {
 } from "@/app/types";
 import SearchAndFilter from "@/components/SearchAndFilter";
 import VendorCard from "./VendorCard";
-import DocumentCard from "./DocumentCard";
 import TechnicalApprovalModal from "./TechnicalApprovalModal";
 import DetailModal from "@/components/modal/DetailModal";
 import Header from "@/components/common/Header";
@@ -21,6 +20,7 @@ import api from "@/lib/axios";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { isAxiosError } from "axios";
+import EngineerDocumentCard from "./DocumentCard";
 
 export default function ApprovalPage() {
   const { user: authUser, isLoading: authLoading, logout } = useAuth();
@@ -451,7 +451,7 @@ export default function ApprovalPage() {
             {/* Documents List */}
             <div className="space-y-4 sm:space-y-6">
               {selectedVendor.documents.map((document) => (
-                <DocumentCard
+                <EngineerDocumentCard
                   key={document.id}
                   document={document}
                   onApprove={handleApproveDocument}

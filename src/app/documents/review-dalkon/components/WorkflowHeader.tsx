@@ -9,7 +9,7 @@ export default function WorkflowHeader({ currentUser }: WorkflowHeaderProps) {
   return (
     <div className="mb-6 p-6 bg-white/80 backdrop-blur-sm rounded-xl shadow-md border border-white/20">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-12 h-12 bg-gradient-to-br from-[#125d72] to-[#14a2ba] rounded-xl flex items-center justify-center">
+        <div className="w-12 h-12 bg-linear-to-br from-[#125d72] to-[#14a2ba] rounded-xl flex items-center justify-center">
           <FileText className="w-6 h-6 text-white" />
         </div>
         <div>
@@ -29,7 +29,7 @@ export default function WorkflowHeader({ currentUser }: WorkflowHeaderProps) {
         </div>
       </div>
 
-      <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+      <div className="mt-4 p-3 bg-linear-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
         <div className="flex items-center justify-center gap-4 text-sm">
           <div className="flex items-center gap-1 text-[#125d72] font-medium">
             <User className="w-4 h-4" />

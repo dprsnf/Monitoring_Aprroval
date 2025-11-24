@@ -13,7 +13,7 @@ import SubmitSection from "@/components/SubmitSection";
 import type { UploadedFile, UploadFormData } from "@/app/types/uploadFIle";
 import Header from "@/components/common/Header";
 import { useAuth } from "@/context/AuthContext";
-import { AlertCircle, Loader2, X, Pencil, ExternalLink } from "lucide-react";
+import { AlertCircle, Loader2, X, Pencil} from "lucide-react";
 import { isAxiosError } from "axios";
 import { Button } from "@/components/ui/button";
 import DocumentViewerModal from "@/app/documents/review-approval/components/DocumentViewerModal";
@@ -38,10 +38,11 @@ export default function VendorUploadPage({
   const { user, isLoading, logout } = useAuth();
   const [apiError, setApiError] = useState("");
   const [resubmitDocs, setResubmitDocs] = useState<any[]>(initialResubmitDocs);
-  const [annotatingDoc, setAnnotatingDoc] = useState<any>(null);
-  const [resubmitUploadingId, setResubmitUploadingId] = useState<number | null>(
-    null
-  );
+
+  const [viewerDoc, setViewerDoc] = useState<any>(null);
+  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
+
+  const [resubmitUploadingId, setResubmitUploadingId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState<UploadFormData>({
     projectTitle: "",
@@ -82,13 +83,8 @@ export default function VendorUploadPage({
   const handlePreviewFile = (fileId: string) => {
     const fileObj = uploadedFiles.find((f) => f.id === fileId);
     if (!fileObj) return;
-    if (fileObj.file.type === "application/pdf") {
-      const url = URL.createObjectURL(fileObj.file);
-      window.open(url, "_blank");
-    } else if (fileObj.file.type.startsWith("image/")) {
-      const url = URL.createObjectURL(fileObj.file);
-      window.open(url, "_blank");
-    }
+    const url = URL.createObjectURL(fileObj.file);
+    window.open(url, "_blank");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -183,7 +179,8 @@ export default function VendorUploadPage({
       alert(err.response?.data?.message || "Gagal submit revisi");
     } finally {
       setResubmitUploadingId(null);
-      setAnnotatingDoc(null);
+      setViewerDoc(null);
+      setIsAnnotationMode(false);
     }
   };
 
@@ -201,21 +198,12 @@ export default function VendorUploadPage({
 
   return (
     <div className="min-h-screen bg-[#14a2ba]">
-      <Header
-        title="Upload Drawing"
-        currentUser={user}
-        backHref="/dashboard"
-        onLogout={logout}
-      />
+      <Header title="Upload Drawing" currentUser={user} backHref="/dashboard" onLogout={logout} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Upload Drawing Teknis
-          </h1>
-          <p className="text-white/90">
-            Submit drawing untuk proses approval PLN
-          </p>
+          <h1 className="text-4xl font-bold text-white mb-2">Upload Drawing Teknis</h1>
+          <p className="text-white/90">Submit drawing untuk proses approval PLN</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -235,55 +223,41 @@ export default function VendorUploadPage({
                     className="bg-white rounded-2xl shadow-xl border p-6 flex flex-col lg:flex-row justify-between items-start gap-6"
                   >
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-900">
-                        {doc.name}
-                      </h3>
+                      <h3 className="text-2xl font-bold text-gray-900">{doc.name}</h3>
                       <p className="text-gray-600 mt-1">
-                        Versi {doc.latestVersion} •{" "}
-                        {doc.documentType?.toUpperCase()}
-                        {doc.contract?.contractNumber &&
-                          ` • ${doc.contract.contractNumber}`}
+                        Versi {doc.latestVersion} • {doc.documentType?.toUpperCase()}
+                        {doc.contract?.contractNumber && ` • ${doc.contract.contractNumber}`}
                       </p>
                       {doc.approvals?.[0]?.notes && (
                         <div className="mt-4 p-5 bg-red-50 border-2 border-red-300 rounded-xl">
-                          <p className="font-bold text-red-800">
-                            Catatan Reviewer:
-                          </p>
-                          <p className="text-red-700 mt-2">
-                            {doc.approvals[0].notes}
-                          </p>
+                          <p className="font-bold text-red-800">Catatan Reviewer:</p>
+                          <p className="text-red-700 mt-2">{doc.approvals[0].notes}</p>
                         </div>
                       )}
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={() =>
-                          window.open(`/documents/${doc.id}/file`, "_blank")
-                        }
-                      >
-                        <ExternalLink className="w-5 h-5 mr-2" /> Preview
-                      </Button>
-
+                    
+                      {/* Preview dokumen */}
                       <Button
                         size="lg"
                         className="bg-green-600 hover:bg-green-700"
-                        onClick={() => setAnnotatingDoc(doc)}
+                        onClick={() => {
+                          setViewerDoc(doc);
+                          setIsAnnotationMode(true);
+                        }}
                       >
-                        <Pencil className="w-5 h-5 mr-2" /> Coret & Submit
+                        <Pencil className="w-5 h-5 mr-2" /> Preview Dokumen
                       </Button>
 
+                      {/*  Upload Revisi Biasa */}
                       <label className="cursor-pointer">
                         <Button
                           size="lg"
                           variant="secondary"
                           disabled={resubmitUploadingId === doc.id}
                         >
-                          {resubmitUploadingId === doc.id
-                            ? "Uploading..."
-                            : "Upload Revisi Biasa"}
+                          {resubmitUploadingId === doc.id ? "Uploading..." : "Upload Revisi Biasa"}
                         </Button>
                         <input
                           type="file"
@@ -292,17 +266,17 @@ export default function VendorUploadPage({
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
+                            setResubmitUploadingId(doc.id);
                             const form = new FormData();
                             form.append("file", file);
                             try {
-                              await api.patch(
-                                `/documents/${doc.id}/resubmit`,
-                                form
-                              );
-                              alert("Revisi biasa berhasil!");
+                              await api.patch(`/documents/${doc.id}/resubmit`, form);
+                              alert("Revisi biasa berhasil disubmit!");
                               await refreshResubmitDocs();
-                            } catch {
-                              alert("Gagal upload revisi biasa");
+                            } catch (err: any) {
+                              alert(err.response?.data?.message || "Gagal upload revisi");
+                            } finally {
+                              setResubmitUploadingId(null);
                             }
                           }}
                         />
@@ -314,43 +288,28 @@ export default function VendorUploadPage({
             </Card>
           )}
 
-          {/* SEMUA KODE UPLOAD BARU ANDA */}
+          {/* FORM UPLOAD BARU */}
           <Card className="shadow-xl bg-white/95">
-            <CardHeader>
-              <CardTitle>Informasi Proyek</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Informasi Proyek</CardTitle></CardHeader>
             <CardContent>
               <ProjectInfoForm
                 formData={formData}
                 onChange={handleInputChange}
-                onCategoryChange={(v) =>
-                  setFormData((prev) => ({ ...prev, category: v }))
-                }
+                onCategoryChange={(v) => setFormData((prev) => ({ ...prev, category: v }))}
               />
             </CardContent>
           </Card>
 
           <Card className="shadow-xl bg-white/95">
-            <CardHeader>
-              <CardTitle>Upload Drawing Files</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Upload Drawing Files</CardTitle></CardHeader>
             <CardContent>
               {!showReviewStep ? (
                 <>
-                  <FileDropzone
-                    isDragOver={isDragOver}
-                    setIsDragOver={setIsDragOver}
-                    onFilesSelected={handleFilesSelected}
-                  />
-                  <UploadedFilesList
-                    files={uploadedFiles}
-                    onRemove={removeFile}
-                  />
+                  <FileDropzone isDragOver={isDragOver} setIsDragOver={setIsDragOver} onFilesSelected={handleFilesSelected} />
+                  <UploadedFilesList files={uploadedFiles} onRemove={removeFile} />
                   {uploadedFiles.length > 0 && (
                     <div className="mt-6 text-center">
-                      <Button size="lg" onClick={() => setShowReviewStep(true)}>
-                        Review Files
-                      </Button>
+                      <Button size="lg" onClick={() => setShowReviewStep(true)}>Review Files</Button>
                     </div>
                   )}
                 </>
@@ -360,61 +319,52 @@ export default function VendorUploadPage({
                   onPreview={handlePreviewFile}
                   onRemove={removeFile}
                   onBackToUpload={() => setShowReviewStep(false)}
-                  onProceedToSubmit={() =>
-                    submitSectionRef.current?.scrollIntoView({
-                      behavior: "smooth",
-                    })
-                  }
+                  onProceedToSubmit={() => submitSectionRef.current?.scrollIntoView({ behavior: "smooth" })}
                 />
               )}
             </CardContent>
           </Card>
 
           <Card className="shadow-xl bg-white/95">
-            <CardHeader>
-              <CardTitle>Catatan Tambahan</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Catatan Tambahan</CardTitle></CardHeader>
             <CardContent>
-              <AdditionalNotes
-                notes={formData.notes}
-                onChange={handleInputChange}
-              />
+              <AdditionalNotes notes={formData.notes} onChange={handleInputChange} />
             </CardContent>
           </Card>
 
           {apiError && (
             <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex justify-between">
               <span>{apiError}</span>
-              <button onClick={() => setApiError("")}>
-                <X />
-              </button>
+              <button onClick={() => setApiError("")}><X /></button>
             </div>
           )}
 
           <div ref={submitSectionRef}>
             <SubmitSection
               canSubmit={
-                uploadedFiles.some(
-                  (f) => f.status === "pending" || f.status === "error"
-                ) && !isUploading
+                uploadedFiles.some((f) => f.status === "pending" || f.status === "error") && !isUploading
               }
             />
           </div>
         </form>
       </main>
 
-      {/* MODAL CORET-CORET */}
-      {annotatingDoc && (
+      {/* SATU MODAL SAJA — BISA PREVIEW ATAU CORET-COret */}
+      {viewerDoc && (
         <DocumentViewerModal
-          documentId={annotatingDoc.id}
-          documentName={annotatingDoc.name}
+          documentId={viewerDoc.id}
+          documentName={viewerDoc.name}
           isOpen={true}
-          onClose={() => setAnnotatingDoc(null)}
-          onSave={(blob) => {
-            const file = new File([blob], `revisi-${annotatingDoc.name}.pdf`, {
-              type: "application/pdf",
-            });
-            handleResubmitAnnotated(annotatingDoc.id, file);
+          onClose={() => {
+            setViewerDoc(null);
+            setIsAnnotationMode(false);
+          }}
+          userDivision={user?.division}
+          onSubmitSuccess={() => {
+            alert("Revisi dengan coretan berhasil disubmit!");
+            setViewerDoc(null);
+            setIsAnnotationMode(false);
+            refreshResubmitDocs();
           }}
         />
       )}
@@ -434,13 +384,9 @@ function formatFileSize(bytes: number): string {
 function getFileTypeFromExtension(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase();
   switch (ext) {
-    case "pdf":
-      return "application/pdf";
-    case "dwg":
-      return "application/dwg";
-    case "dxf":
-      return "application/dxf";
-    default:
-      return "application/octet-stream";
+    case "pdf": return "application/pdf";
+    case "dwg": return "application/dwg";
+    case "dxf": return "application/dxf";
+    default: return "application/octet-stream";
   }
 }

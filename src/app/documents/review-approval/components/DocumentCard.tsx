@@ -1,4 +1,3 @@
-// components/DocumentCard.tsx
 "use client";
 
 import { useState } from "react";
@@ -11,12 +10,11 @@ import {
   Eye,
   Download,
   CheckCircle,
-  XCircle,
   MessageSquare,
-  Send, // <-- Pastikan ini di-import
+  Send,
 } from "lucide-react";
 import { Document, Status, Division, User } from "@/app/types";
-import DocumentViewerModal from "./DocumentViewerModal"; // <-- Import modal baru
+import DocumentViewerModal from "./DocumentViewerModal";
 import api from "@/lib/axios";
 
 interface DocumentCardProps {
@@ -24,14 +22,15 @@ interface DocumentCardProps {
   onApprove: (document: Document) => void;
   onApproveWithNotes: (document: Document) => void;
   onReject: (document: Document) => void;
-  onPreview: (document: Document) => void; // Ini untuk 'DetailModal'
+  onPreview: (document: Document) => void;
   getStatusColor: (status: Status) => string;
   getStatusText: (status: Status) => string;
   currentUser: User | null;
   activeTab: "new" | "results";
+  onRefresh?: () => void; // ✅ Tambahkan prop untuk refresh
 }
 
-export default function DocumentCard({
+export default function EngineerDocumentCard({
   document,
   onApprove,
   onApproveWithNotes,
@@ -41,9 +40,10 @@ export default function DocumentCard({
   getStatusText,
   currentUser,
   activeTab,
+  onRefresh, // ✅ Terima prop refresh
 }: DocumentCardProps) {
-  // State untuk modal viewer baru
   const [showViewerModal, setShowViewerModal] = useState(false);
+  const [initialAction, setInitialAction] = useState<"approve" | "approveWithNotes" | "returnForCorrection" | null>(null);
 
   const latestProgress =
     document.progress && document.progress.length > 0
@@ -56,7 +56,6 @@ export default function DocumentCard({
       currentUser.division === Division.Engineer ||
       currentUser.division === Division.Manager);
 
-  // Fungsi untuk download file asli dari endpoint
   const handleDownload = async () => {
     try {
       const response = await api.get(`/documents/${document.id}/file`, {
@@ -65,7 +64,6 @@ export default function DocumentCard({
       const blob = new Blob([response.data], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
 
-      // ✅ PERBAIKAN: Gunakan window.document untuk menghindari konflik nama
       const link = window.document.createElement("a");
       link.href = url;
       link.download = `${document.name.replace(/[^a-z0-9]/gi, "_")}.pdf`;
@@ -81,11 +79,25 @@ export default function DocumentCard({
     }
   };
 
+  // ✅ Handler untuk buka modal dengan action tertentu
+  const handleOpenModalWithAction = (action: "approve" | "approveWithNotes" | "returnForCorrection") => {
+    setInitialAction(action);
+    setShowViewerModal(true);
+  };
+
+  // ✅ Handler setelah submit berhasil dari modal
+  const handleSubmitSuccess = () => {
+    setShowViewerModal(false);
+    setInitialAction(null);
+    if (onRefresh) {
+      onRefresh(); // Refresh data dokumen
+    }
+  };
+
   return (
     <>
       <Card className="overflow-hidden shadow-xl bg-white/95 backdrop-blur-sm border border-white/30">
         <CardContent className="p-4 sm:p-6">
-          {/* Hapus ref dari div ini */}
           <div>
             <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
               <div className="flex-1 w-full">
@@ -149,16 +161,18 @@ export default function DocumentCard({
 
               <div className="w-full lg:w-auto lg:min-w-[200px]">
                 <div className="flex flex-col gap-2">
-                  {/* Tombol ini sekarang membuka DocumentViewerModal */}
+                  {/* Preview tanpa action (hanya lihat) */}
                   <Button
-                    onClick={() => setShowViewerModal(true)}
+                    onClick={() => {
+                      setInitialAction(null);
+                      setShowViewerModal(true);
+                    }}
                     className="w-full bg-[#125d72] hover:bg-[#14a2ba] text-white text-sm"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Preview Document
                   </Button>
 
-                  {/* Tombol ini memanggil handleDownload */}
                   <Button
                     onClick={handleDownload}
                     className="w-full bg-gray-500 hover:bg-gray-600 text-white text-sm"
@@ -167,7 +181,6 @@ export default function DocumentCard({
                     Download
                   </Button>
 
-                  {/* Tombol ini membuka DetailModal (info, bukan preview file) */}
                   <Button
                     onClick={() => onPreview(document)}
                     variant="outline"
@@ -177,17 +190,16 @@ export default function DocumentCard({
                     View Details
                   </Button>
 
-                  {/* Logika tombol-tombol approval */}
-                  {/* Logika tombol-tombol approval */}
+                  {/* ✅ Tombol approval dengan modal action */}
                   {activeTab === "new" && canReview && (
                     <>
-                      {/* DALKON: Forward atau Return */}
+                      {/* DALKON */}
                       {currentUser?.division === Division.Dalkon &&
                         (document.status === Status.submitted ||
                           document.status === Status.approvedWithNotes) && (
                           <>
                             <Button
-                              onClick={() => onApprove(document)}
+                              onClick={() => handleOpenModalWithAction("approve")}
                               className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-2"
                             >
                               <CheckCircle className="w-4 h-4 mr-2" />
@@ -196,10 +208,9 @@ export default function DocumentCard({
                                 : "Forward to Manager"}
                             </Button>
 
-                            {/* BARU: Return for Correction (ORANYE) */}
                             <Button
-                              onClick={() => onReject(document)} // tetap pakai onReject → modal sama
-                              className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm mt-2"
+                              onClick={() => handleOpenModalWithAction("returnForCorrection")}
+                              className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm"
                             >
                               <Send className="w-4 h-4 mr-2" />
                               Return for Correction
@@ -207,12 +218,12 @@ export default function DocumentCard({
                           </>
                         )}
 
-                      {/* ENGINEER: Approve, Approve with Notes, Return */}
+                      {/* ENGINEER */}
                       {currentUser?.division === Division.Engineer &&
                         document.status === Status.inReviewEngineering && (
                           <>
                             <Button
-                              onClick={() => onApprove(document)}
+                              onClick={() => handleOpenModalWithAction("approve")}
                               className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-2"
                             >
                               <CheckCircle className="w-4 h-4 mr-2" />
@@ -220,17 +231,16 @@ export default function DocumentCard({
                             </Button>
 
                             <Button
-                              onClick={() => onApproveWithNotes(document)}
+                              onClick={() => handleOpenModalWithAction("approveWithNotes")}
                               className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
                             >
                               <MessageSquare className="w-4 h-4 mr-2" />
                               Approve with Notes
                             </Button>
 
-                            {/* BARU: Return for Correction (ORANYE) */}
                             <Button
-                              onClick={() => onReject(document)}
-                              className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm mt-2"
+                              onClick={() => handleOpenModalWithAction("returnForCorrection")}
+                              className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm"
                             >
                               <Send className="w-4 h-4 mr-2" />
                               Return for Correction
@@ -238,39 +248,27 @@ export default function DocumentCard({
                           </>
                         )}
 
-                      {/* MANAGER: Approve atau Return */}
+                      {/* MANAGER */}
                       {currentUser?.division === Division.Manager &&
                         document.status === Status.inReviewManager && (
                           <>
                             <Button
-                              onClick={() => onApprove(document)}
+                              onClick={() => handleOpenModalWithAction("approve")}
                               className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-2"
                             >
                               <CheckCircle className="w-4 h-4 mr-2" />
                               Approve
                             </Button>
 
-                            {/* BARU: Return for Correction (ORANYE) */}
                             <Button
-                              onClick={() => onReject(document)}
-                              className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm mt-2"
+                              onClick={() => handleOpenModalWithAction("returnForCorrection")}
+                              className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm"
                             >
                               <Send className="w-4 h-4 mr-2" />
                               Return for Correction
                             </Button>
                           </>
                         )}
-
-                      {/* OPTIONAL: Kalau mau tetap ada tombol Reject (final reject) */}
-                      {/* 
-    <Button
-      onClick={() => onReject(document)}
-      className="w-full bg-red-600 hover:bg-red-700 text-white text-sm mt-2"
-    >
-      <XCircle className="w-4 h-4 mr-2" />
-      Reject Permanently
-    </Button>
-    */}
                     </>
                   )}
                 </div>
@@ -280,13 +278,19 @@ export default function DocumentCard({
         </CardContent>
       </Card>
 
-      {/* Modal ini sekarang adalah DocumentViewerModal yang baru */}
+      {/* ✅ Modal dengan semua props yang diperlukan */}
       {showViewerModal && (
         <DocumentViewerModal
           documentId={document.id}
           documentName={document.name}
           isOpen={showViewerModal}
-          onClose={() => setShowViewerModal(false)}
+          onClose={() => {
+            setShowViewerModal(false);
+            setInitialAction(null);
+          }}
+          userDivision={currentUser?.division}
+          onSubmitSuccess={handleSubmitSuccess}
+          initialAction={initialAction}
         />
       )}
     </>

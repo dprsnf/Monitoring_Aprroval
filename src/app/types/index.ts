@@ -63,6 +63,7 @@ export interface Document {
   createdAt: string;
   updatedAt: string;
   remarks?: string;
+  returnRequestedBy?: Division;
   approvals: Approval[];
 
   progress: string[]; 
