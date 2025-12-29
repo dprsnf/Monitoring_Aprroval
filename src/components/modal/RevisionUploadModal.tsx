@@ -1,0 +1,295 @@
+"use client"
+
+import React, { useState, useRef } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Upload, Loader2, X, CheckCircle, MessageSquare, Send } from "lucide-react"
+import { cn } from "@/lib/utils"
+import api from "@/lib/axios"
+import { Division } from "@/app/types"
+
+interface RevisionUploadModalProps {
+  documentId: number
+  documentName: string
+  isOpen: boolean
+  onClose: () => void
+  userDivision?: Division
+  onSubmitSuccess?: () => void
+}
+
+export default function RevisionUploadModal({
+  documentId,
+  documentName,
+  isOpen,
+  onClose,
+  userDivision,
+  onSubmitSuccess,
+}: RevisionUploadModalProps) {
+  const [isMounted, setIsMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  if (!isMounted) return null
+
+  return (
+    <RevisionUploadModalContent {...{ documentId, documentName, isOpen, onClose, userDivision, onSubmitSuccess }} />
+  )
+}
+
+function RevisionUploadModalContent({
+  documentId,
+  documentName,
+  isOpen,
+  onClose,
+  userDivision,
+  onSubmitSuccess,
+}: RevisionUploadModalProps) {
+  const [file, setFile] = useState<File | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [action, setAction] = useState("")
+  const [notes, setNotes] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const needsNotes = action === "approveWithNotes" || action === "returnForCorrection"
+  const isReviewer = [Division.Dalkon, Division.Engineer, Division.Manager].includes(userDivision!)
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragOver(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const droppedFiles = e.dataTransfer.files
+    if (droppedFiles.length > 0) {
+      const droppedFile = droppedFiles[0]
+      if (droppedFile.type === "application/pdf") {
+        setFile(droppedFile)
+      } else {
+        alert("Hanya file PDF yang diperbolehkan")
+      }
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile) {
+      if (selectedFile.type === "application/pdf") {
+        setFile(selectedFile)
+      } else {
+        alert("Hanya file PDF yang diperbolehkan")
+      }
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!file) {
+      alert("Pilih file PDF terlebih dahulu")
+      return
+    }
+
+    if (isReviewer && !action) {
+      alert("Pilih aksi terlebih dahulu")
+      return
+    }
+
+    if (isReviewer && needsNotes && !notes.trim()) {
+      alert("Notes wajib diisi untuk aksi ini")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      let endpoint = `/documents/${documentId}/resubmit`
+
+      if (isReviewer) {
+        formData.append("action", action)
+        if (notes.trim()) {
+          formData.append("notes", notes.trim())
+        }
+
+        const roleMap: Record<Division, string> = {
+          [Division.Dalkon]: "dalkon",
+          [Division.Engineer]: "engineering",
+          [Division.Manager]: "manager",
+          [Division.Vendor]: "vendor",
+        }
+        const role = roleMap[userDivision!] || "dalkon"
+        endpoint = `/documents/${documentId}/${role}-review`
+      }
+
+      await api.patch(endpoint, formData)
+
+      alert("Upload revisi berhasil!")
+      onSubmitSuccess?.()
+      onClose()
+    } catch (err: any) {
+      console.error(err)
+      alert(err.response?.data?.message || "Gagal upload revisi")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleClose = () => {
+    setFile(null)
+    setAction("")
+    setNotes("")
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+    onClose()
+  }
+
+  const descriptionId = `revision-upload-description-${documentId}`
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl" aria-describedby={descriptionId}>
+        <div id={descriptionId} className="sr-only">
+          Upload file PDF revisi untuk dokumen {documentName}
+        </div>
+
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Upload Revisi: {documentName}</DialogTitle>
+          <p className="text-sm text-gray-600 mt-2">
+            {isReviewer ? "Upload file PDF dan pilih aksi review" : "Upload file PDF yang sudah direvisi"}
+          </p>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* File Upload Area */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={cn(
+              "border-2 border-dashed rounded-xl p-8 transition-all text-center cursor-pointer",
+              isDragOver ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-50 hover:border-gray-400",
+              file && "border-green-500 bg-green-50",
+            )}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input ref={fileInputRef} type="file" accept="application/pdf" hidden onChange={handleFileSelect} />
+
+            {!file ? (
+              <div className="space-y-3">
+                <Upload className="w-12 h-12 mx-auto text-gray-400" />
+                <div>
+                  <p className="font-semibold text-gray-900">Drag and drop PDF file</p>
+                  <p className="text-sm text-gray-600">atau klik untuk memilih file</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <CheckCircle className="w-12 h-12 mx-auto text-green-600" />
+                <div>
+                  <p className="font-semibold text-green-900">{file.name}</p>
+                  <p className="text-sm text-green-700">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleRemoveFile()
+                  }}
+                  className="mt-2"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Remove
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Reviewer Actions */}
+          {isReviewer && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Pilih Aksi Review</label>
+                <Select value={action} onValueChange={setAction}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih aksi..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="approve">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        Approve
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="approveWithNotes">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-blue-600" />
+                        Approve with Notes
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="returnForCorrection">
+                      <div className="flex items-center gap-2">
+                        <Send className="w-4 h-4 text-orange-600" />
+                        Return for Correction
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {needsNotes && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Catatan Reviewer</label>
+                  <Textarea
+                    placeholder="Masukkan catatan..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="min-h-24"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex gap-3 pt-4">
+          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
+            Batal
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!file || isSubmitting || (isReviewer && (!action || (needsNotes && !notes.trim())))}
+            className={cn(
+              isReviewer && action === "approve" && "bg-green-600 hover:bg-green-700",
+              isReviewer && action === "approveWithNotes" && "bg-blue-600 hover:bg-blue-700",
+              isReviewer && action === "returnForCorrection" && "bg-orange-600 hover:bg-orange-700",
+              !isReviewer && "bg-blue-600 hover:bg-blue-700",
+            )}
+          >
+            {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+            {isReviewer ? "Submit Review" : "Upload Revisi"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

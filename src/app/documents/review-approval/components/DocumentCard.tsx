@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,6 @@ import {
   Send,
 } from "lucide-react";
 import { Document, Status, Division, User } from "@/app/types";
-import DocumentViewerModal from "./DocumentViewerModal";
 import api from "@/lib/axios";
 
 interface DocumentCardProps {
@@ -42,8 +42,7 @@ export default function EngineerDocumentCard({
   activeTab,
   onRefresh, // ✅ Terima prop refresh
 }: DocumentCardProps) {
-  const [showViewerModal, setShowViewerModal] = useState(false);
-  const [initialAction, setInitialAction] = useState<"approve" | "approveWithNotes" | "returnForCorrection" | null>(null);
+  const router = useRouter();
 
   const latestProgress =
     document.progress && document.progress.length > 0
@@ -79,19 +78,16 @@ export default function EngineerDocumentCard({
     }
   };
 
-  // ✅ Handler untuk buka modal dengan action tertentu
-  const handleOpenModalWithAction = (action: "approve" | "approveWithNotes" | "returnForCorrection") => {
-    setInitialAction(action);
-    setShowViewerModal(true);
-  };
-
-  // ✅ Handler setelah submit berhasil dari modal
-  const handleSubmitSuccess = () => {
-    setShowViewerModal(false);
-    setInitialAction(null);
-    if (onRefresh) {
-      onRefresh(); // Refresh data dokumen
-    }
+  // ✅ Handler untuk navigate ke page dengan action tertentu
+  const handleOpenPageWithAction = (action: "approve" | "approveWithNotes" | "returnForCorrection" | null = null) => {
+    const data = {
+      documentId: document.id,
+      documentName: document.name,
+      userDivision: currentUser?.division,
+      initialAction: action,
+    };
+    sessionStorage.setItem("documentReviewData", JSON.stringify(data));
+    router.push(`/documents/review/${document.id}`);
   };
 
   return (
@@ -163,10 +159,7 @@ export default function EngineerDocumentCard({
                 <div className="flex flex-col gap-2">
                   {/* Preview tanpa action (hanya lihat) */}
                   <Button
-                    onClick={() => {
-                      setInitialAction(null);
-                      setShowViewerModal(true);
-                    }}
+                    onClick={() => handleOpenPageWithAction(null)}
                     className="w-full bg-[#125d72] hover:bg-[#14a2ba] text-white text-sm"
                   >
                     <Eye className="w-4 h-4 mr-2" />
@@ -199,7 +192,7 @@ export default function EngineerDocumentCard({
                           document.status === Status.approvedWithNotes) && (
                           <>
                             <Button
-                              onClick={() => handleOpenModalWithAction("approve")}
+                              onClick={() => handleOpenPageWithAction("approve")}
                               className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-2"
                             >
                               <CheckCircle className="w-4 h-4 mr-2" />
@@ -209,7 +202,7 @@ export default function EngineerDocumentCard({
                             </Button>
 
                             <Button
-                              onClick={() => handleOpenModalWithAction("returnForCorrection")}
+                              onClick={() => handleOpenPageWithAction("returnForCorrection")}
                               className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm"
                             >
                               <Send className="w-4 h-4 mr-2" />
@@ -223,7 +216,7 @@ export default function EngineerDocumentCard({
                         document.status === Status.inReviewEngineering && (
                           <>
                             <Button
-                              onClick={() => handleOpenModalWithAction("approve")}
+                              onClick={() => handleOpenPageWithAction("approve")}
                               className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-2"
                             >
                               <CheckCircle className="w-4 h-4 mr-2" />
@@ -231,7 +224,7 @@ export default function EngineerDocumentCard({
                             </Button>
 
                             <Button
-                              onClick={() => handleOpenModalWithAction("approveWithNotes")}
+                              onClick={() => handleOpenPageWithAction("approveWithNotes")}
                               className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
                             >
                               <MessageSquare className="w-4 h-4 mr-2" />
@@ -239,7 +232,7 @@ export default function EngineerDocumentCard({
                             </Button>
 
                             <Button
-                              onClick={() => handleOpenModalWithAction("returnForCorrection")}
+                              onClick={() => handleOpenPageWithAction("returnForCorrection")}
                               className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm"
                             >
                               <Send className="w-4 h-4 mr-2" />
@@ -253,7 +246,7 @@ export default function EngineerDocumentCard({
                         document.status === Status.inReviewManager && (
                           <>
                             <Button
-                              onClick={() => handleOpenModalWithAction("approve")}
+                              onClick={() => handleOpenPageWithAction("approve")}
                               className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-2"
                             >
                               <CheckCircle className="w-4 h-4 mr-2" />
@@ -261,7 +254,7 @@ export default function EngineerDocumentCard({
                             </Button>
 
                             <Button
-                              onClick={() => handleOpenModalWithAction("returnForCorrection")}
+                              onClick={() => handleOpenPageWithAction("returnForCorrection")}
                               className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm"
                             >
                               <Send className="w-4 h-4 mr-2" />
@@ -277,22 +270,6 @@ export default function EngineerDocumentCard({
           </div>
         </CardContent>
       </Card>
-
-      {/* ✅ Modal dengan semua props yang diperlukan */}
-      {showViewerModal && (
-        <DocumentViewerModal
-          documentId={document.id}
-          documentName={document.name}
-          isOpen={showViewerModal}
-          onClose={() => {
-            setShowViewerModal(false);
-            setInitialAction(null);
-          }}
-          userDivision={currentUser?.division}
-          onSubmitSuccess={handleSubmitSuccess}
-          initialAction={initialAction}
-        />
-      )}
     </>
   );
 }

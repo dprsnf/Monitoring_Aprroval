@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ProjectInfoForm from "@/components/ProjectInfoForm";
@@ -16,7 +17,6 @@ import { useAuth } from "@/context/AuthContext";
 import { AlertCircle, Loader2, X, Pencil} from "lucide-react";
 import { isAxiosError } from "axios";
 import { Button } from "@/components/ui/button";
-import DocumentViewerModal from "@/app/documents/review-approval/components/DocumentViewerModal";
 
 type FileForUpload = UploadedFile & {
   file: File;
@@ -30,6 +30,7 @@ interface VendorUploadPageProps {
 export default function VendorUploadPage({
   initialResubmitDocs,
 }: VendorUploadPageProps) {
+  const router = useRouter();
   const [uploadedFiles, setUploadedFiles] = useState<FileForUpload[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -38,9 +39,6 @@ export default function VendorUploadPage({
   const { user, isLoading, logout } = useAuth();
   const [apiError, setApiError] = useState("");
   const [resubmitDocs, setResubmitDocs] = useState<any[]>(initialResubmitDocs);
-
-  const [viewerDoc, setViewerDoc] = useState<any>(null);
-  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
 
   const [resubmitUploadingId, setResubmitUploadingId] = useState<number | null>(null);
 
@@ -179,8 +177,6 @@ export default function VendorUploadPage({
       alert(err.response?.data?.message || "Gagal submit revisi");
     } finally {
       setResubmitUploadingId(null);
-      setViewerDoc(null);
-      setIsAnnotationMode(false);
     }
   };
 
@@ -243,8 +239,14 @@ export default function VendorUploadPage({
                         size="lg"
                         className="bg-green-600 hover:bg-green-700"
                         onClick={() => {
-                          setViewerDoc(doc);
-                          setIsAnnotationMode(true);
+                          const data = {
+                            documentId: doc.id,
+                            documentName: doc.name,
+                            userDivision: user?.division,
+                            initialAction: null,
+                          };
+                          sessionStorage.setItem("documentReviewData", JSON.stringify(data));
+                          router.push(`/documents/review/${doc.id}`);
                         }}
                       >
                         <Pencil className="w-5 h-5 mr-2" /> Preview Dokumen
@@ -348,26 +350,6 @@ export default function VendorUploadPage({
           </div>
         </form>
       </main>
-
-      {/* SATU MODAL SAJA — BISA PREVIEW ATAU CORET-COret */}
-      {viewerDoc && (
-        <DocumentViewerModal
-          documentId={viewerDoc.id}
-          documentName={viewerDoc.name}
-          isOpen={true}
-          onClose={() => {
-            setViewerDoc(null);
-            setIsAnnotationMode(false);
-          }}
-          userDivision={user?.division}
-          onSubmitSuccess={() => {
-            alert("Revisi dengan coretan berhasil disubmit!");
-            setViewerDoc(null);
-            setIsAnnotationMode(false);
-            refreshResubmitDocs();
-          }}
-        />
-      )}
     </div>
   );
 }

@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import { Document, Division, Status } from "@/app/types";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
-import DocumentViewerModal from "../../review-approval/components/DocumentViewerModal";
 
 interface DalkonDocumentCardProps {
   document: Document;
@@ -30,7 +30,18 @@ export default function DalkonDocumentCard({
   onReturnClick,
   onRejectClick,
 }: DalkonDocumentCardProps) {
-  const [showViewerModal, setShowViewerModal] = useState(false);
+  const router = useRouter();
+
+  const handleOpenPage = () => {
+    const data = {
+      documentId: doc.id,
+      documentName: doc.name,
+      userDivision: currentUser?.division,
+      initialAction: null,
+    };
+    sessionStorage.setItem("documentReviewData", JSON.stringify(data));
+    router.push(`/documents/review/${doc.id}`);
+  };
 
   const isDalkon = currentUser?.division === Division.Dalkon;
   const isEngineer = currentUser?.division === Division.Engineer;
@@ -113,7 +124,7 @@ export default function DalkonDocumentCard({
 
           <div className="flex flex-col gap-3 min-w-[220px]">
             <Button
-              onClick={() => setShowViewerModal(true)}
+              onClick={handleOpenPage}
               className="bg-[#125d72] hover:bg-[#14a2ba]"
             >
               <Eye className="w-4 h-4 mr-2" />
@@ -182,20 +193,6 @@ export default function DalkonDocumentCard({
           </div>
         </div>
       </div>
-
-      {showViewerModal && (
-        <DocumentViewerModal
-          documentId={doc.id}
-          documentName={doc.name}
-          isOpen={showViewerModal}
-          onClose={() => setShowViewerModal(false)}
-          userDivision={currentUser?.division}
-          onSubmitSuccess={() => {
-            setShowViewerModal(false);
-            window.location.reload();
-          }}
-        />
-      )}
     </>
   );
 }
