@@ -13,6 +13,7 @@ const getCookieValue = (name: string): string | null => {
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  timeout: 60000, // 60 seconds for large file downloads
   // headers: {
   //   // "Content-Type": "application/json",
   // },

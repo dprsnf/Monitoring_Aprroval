@@ -13,9 +13,11 @@ import {
   CheckCircle,
   MessageSquare,
   Send,
+  Upload,
 } from "lucide-react";
 import { Document, Status, Division, User } from "@/app/types";
 import api from "@/lib/axios";
+import RevisionUploadModal from "@/components/modal/RevisionUploadModal";
 
 interface DocumentCardProps {
   document: Document;
@@ -43,6 +45,7 @@ export default function EngineerDocumentCard({
   onRefresh, // ✅ Terima prop refresh
 }: DocumentCardProps) {
   const router = useRouter();
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const latestProgress =
     document.progress && document.progress.length > 0
@@ -183,6 +186,17 @@ export default function EngineerDocumentCard({
                     View Details
                   </Button>
 
+                  {/* Upload & review with PDF + notes (Dalkon/Engineer/Manager) */}
+                  {canReview && (
+                    <Button
+                      onClick={() => setIsUploadModalOpen(true)}
+                      className="w-full bg-[#0e7490] hover:bg-[#0c5f78] text-white text-sm"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload PDF & Review
+                    </Button>
+                  )}
+
                   {/* ✅ Tombol approval dengan modal action */}
                   {activeTab === "new" && canReview && (
                     <>
@@ -270,6 +284,18 @@ export default function EngineerDocumentCard({
           </div>
         </CardContent>
       </Card>
+
+      <RevisionUploadModal
+        documentId={document.id}
+        documentName={document.name}
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        userDivision={currentUser?.division}
+        onSubmitSuccess={() => {
+          onRefresh?.();
+          setIsUploadModalOpen(false);
+        }}
+      />
     </>
   );
 }

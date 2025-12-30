@@ -55,7 +55,7 @@ function RevisionUploadModalContent({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const needsNotes = action === "approveWithNotes" || action === "returnForCorrection"
+  const needsNotes = action === "approve" || action === "approveWithNotes" || action === "returnForCorrection"
   const isReviewer = [Division.Dalkon, Division.Engineer, Division.Manager].includes(userDivision!)
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -76,7 +76,7 @@ function RevisionUploadModalContent({
       if (droppedFile.type === "application/pdf") {
         setFile(droppedFile)
       } else {
-        alert("Hanya file PDF yang diperbolehkan")
+        alert("Hanya file PDF yang diperbolehkan (dibutuhkan untuk patch/review)")
       }
     }
   }
@@ -87,7 +87,7 @@ function RevisionUploadModalContent({
       if (selectedFile.type === "application/pdf") {
         setFile(selectedFile)
       } else {
-        alert("Hanya file PDF yang diperbolehkan")
+        alert("Hanya file PDF yang diperbolehkan (dibutuhkan untuk patch/review)")
       }
     }
   }
@@ -197,7 +197,7 @@ function RevisionUploadModalContent({
               <div className="space-y-3">
                 <Upload className="w-12 h-12 mx-auto text-gray-400" />
                 <div>
-                  <p className="font-semibold text-gray-900">Drag and drop PDF file</p>
+                  <p className="font-semibold text-gray-900">Drag and drop file PDF</p>
                   <p className="text-sm text-gray-600">atau klik untuk memilih file</p>
                 </div>
               </div>
@@ -205,8 +205,8 @@ function RevisionUploadModalContent({
               <div className="space-y-2">
                 <CheckCircle className="w-12 h-12 mx-auto text-green-600" />
                 <div>
-                  <p className="font-semibold text-green-900">{file.name}</p>
-                  <p className="text-sm text-green-700">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p className="font-semibold text-green-900 text-center">{file.name}</p>
+                  <p className="text-sm text-green-700 text-center">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
                 <Button
                   size="sm"
@@ -265,6 +265,23 @@ function RevisionUploadModalContent({
                     onChange={(e) => setNotes(e.target.value)}
                     className="min-h-24"
                   />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Live Preview Panel */}
+          {(file || notes || action) && (
+            <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
+              <p className="text-sm font-semibold text-gray-800">Live Preview</p>
+              {file && <p className="text-sm text-gray-700">File: {file.name}</p>}
+              {action && (
+                <p className="text-sm"><span className="font-semibold">Action:</span> {action}</p>
+              )}
+              {notes && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Notes</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{notes}</p>
                 </div>
               )}
             </div>

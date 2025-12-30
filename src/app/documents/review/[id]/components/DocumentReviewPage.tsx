@@ -50,7 +50,7 @@ const Page = dynamic(() => import("react-pdf").then((mod) => mod.Page), {
 // Ensure pdfjs uses the bundled worker from /public to avoid fake-worker warnings
 if (typeof window !== "undefined") {
   // Force absolute root path so it won't follow the current route
-  const workerSrc = `${window.location.origin}/pdf.worker.mjs`;
+  const workerSrc = `${window.location.origin}/pdf.worker.min.mjs`;
   if (pdfjs.GlobalWorkerOptions.workerSrc !== workerSrc) {
     pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
   }
@@ -92,14 +92,30 @@ export default function DocumentReviewPage({
   onSubmitSuccess,
   initialAction = null,
 }: DocumentReviewPageProps) {
+  const STORAGE_KEY = `annotations_${documentId}`;
+  
   const [pdfFile, setPdfFile] = useState<{ data: Uint8Array } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPdfReady, setIsPdfReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
 
   const [isDrawing, setIsDrawing] = useState(false);
-  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [annotations, setAnnotations] = useState<Annotation[]>(() => {
+    // Load from localStorage on mount
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return [];
+        }
+      }
+    }
+    return [];
+  });
   const currentPathRef = useRef<Point[]>([]);
   const [tool, setTool] = useState<"pencil" | "eraser" | "text" | "stamp">(
     "pencil"
@@ -125,22 +141,48 @@ export default function DocumentReviewPage({
   const needsNotes =
     action === "approveWithNotes" || action === "returnForCorrection";
 
-  const loadFile = useCallback(async () => {
+  // Persist annotations to localStorage
+  useEffect(() => {
+    if (annotations.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
+    }
+  }, [annotations, STORAGE_KEY]);
+
+  const loadFile = useCallback(async (retryCount = 0) => {
     if (!documentId) return;
     setIsLoading(true);
+    setIsPdfReady(false);
     setError(null);
 
     try {
       const { data } = await api.get(`/documents/${documentId}/file`, {
         responseType: "arraybuffer",
+        timeout: 120000, // 2 minutes for large PDFs
       });
 
       const uint8Array = new Uint8Array(data);
+      console.log("PDF loaded successfully", { 
+        byteLength: uint8Array.byteLength,
+        first4Bytes: Array.from(uint8Array.slice(0, 4)).map(b => String.fromCharCode(b)).join('')
+      });
+      
       setPdfFile({ data: uint8Array });
-    } catch (err) {
-      setError("Gagal memuat dokumen.");
-      console.error(err);
-    } finally {
+      setIsPdfReady(true);
+      setIsLoading(false); // ✅ Set loading false on success
+    } catch (err: any) {
+      console.error("Load file error:", err);
+      
+      // Retry logic for timeout errors
+      if ((err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK' || err.message?.includes('timeout')) && retryCount < 3) {
+        console.log(`Retrying... (${retryCount + 1}/3)`);
+        setTimeout(() => {
+          loadFile(retryCount + 1);
+        }, Math.pow(2, retryCount) * 1000); // Exponential backoff: 1s, 2s, 4s
+        return;
+      }
+      
+      setError("Gagal memuat dokumen. Coba refresh halaman.");
+      setIsPdfReady(false);
       setIsLoading(false);
     }
   }, [documentId]);
@@ -277,6 +319,7 @@ export default function DocumentReviewPage({
 
   const clearAll = () => {
     setAnnotations([]);
+    localStorage.removeItem(STORAGE_KEY);
     Object.values(canvasRefs.current).forEach((c) =>
       c?.getContext("2d")?.clearRect(0, 0, c.width, c.height)
     );
@@ -322,7 +365,21 @@ export default function DocumentReviewPage({
   };
 
   const generateAnnotatedPDF = async (): Promise<File | null> => {
-    if (!pdfFile) return null;
+    if (!pdfFile || !pdfFile.data) {
+      console.error("PDF file not loaded", { pdfFile });
+      return null;
+    }
+
+    // Validate PDF data (Uint8Array uses byteLength)
+    if (pdfFile.data.byteLength === 0) {
+      console.error("PDF data is empty", { byteLength: pdfFile.data.byteLength });
+      return null;
+    }
+
+    console.log("Generating annotated PDF", { 
+      dataSize: pdfFile.data.byteLength, 
+      annotationsCount: annotations.length 
+    });
 
     try {
       const { PDFDocument: PDFDocumentLib } = await import("pdf-lib");
@@ -415,22 +472,26 @@ export default function DocumentReviewPage({
 
     setIsSaving(true);
     try {
-      const file = await generateAnnotatedPDF();
-      if (file) {
-        const url = URL.createObjectURL(file);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+      // Kirim annotations sebagai JSON - backend yang merge ke PDF
+      const payload = {
+        annotations: annotations,
+        documentName: documentName,
+      };
 
-        alert("PDF berhasil disimpan!");
-      }
-    } catch (err) {
+      await api.patch(`/documents/${documentId}/save-annotations`, payload, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      // Clear localStorage after successful save
+      localStorage.removeItem(STORAGE_KEY);
+      
+      alert("Annotations berhasil disimpan ke server! Anda bisa lanjut edit atau submit.");
+      
+    } catch (err: any) {
       console.error(err);
-      alert("Gagal menyimpan PDF.");
+      alert(err.response?.data?.message || "Gagal menyimpan annotations ke server.");
     } finally {
       setIsSaving(false);
     }
@@ -458,23 +519,28 @@ export default function DocumentReviewPage({
       };
       const role = roleMap[userDivision!] || "dalkon";
 
-      const formData = new FormData();
-
-      const fileToSend = await generateAnnotatedPDF();
-      if (fileToSend) {
-        formData.append("file", fileToSend);
-      }
+      // Kirim annotations sebagai JSON - backend akan merge ke PDF
+      const payload: any = {
+        action: action,
+      };
 
       if (notes.trim()) {
-        formData.append("notes", notes.trim());
+        payload.notes = notes.trim();
       }
-      formData.append("action", action);
 
-      await api.patch(`/documents/${documentId}/${role}-review`, formData, {
+      // Kirim annotations jika ada
+      if (annotations.length > 0) {
+        payload.annotations = annotations;
+      }
+
+      await api.patch(`/documents/${documentId}/${role}-review`, payload, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          "Content-Type": "application/json",
         },
       });
+
+      // Clear localStorage after successful submit
+      localStorage.removeItem(STORAGE_KEY);
 
       alert("Dokumen berhasil diproses!");
       onSubmitSuccess?.();
@@ -528,8 +594,6 @@ export default function DocumentReviewPage({
     Division.Manager,
   ].includes(userDivision!);
 
-  const memoizedPdfFile = useMemo(() => pdfFile, [pdfFile?.data]);
-
   return (
     <div className="fixed inset-0 bg-white flex flex-col z-50">
       {/* Header */}
@@ -541,9 +605,16 @@ export default function DocumentReviewPage({
           <div>
             <h1 className="text-xl font-bold">{documentName}</h1>
             <p className="text-sm text-gray-500">
-              {isReviewer
-                ? "Review dokumen dan pilih aksi di bawah"
-                : "Coret dokumen lalu submit revisi"}
+              {!isPdfReady ? (
+                <span className="text-blue-600 flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Loading PDF...
+                </span>
+              ) : isReviewer ? (
+                "Review dokumen dan pilih aksi di bawah"
+              ) : (
+                "Coret dokumen lalu submit revisi"
+              )}
             </p>
           </div>
         </div>
@@ -639,13 +710,14 @@ export default function DocumentReviewPage({
                 variant="outline"
                 onClick={handleSave}
                 disabled={isSaving || annotations.length === 0}
+                title="Simpan annotations ke server (tidak perlu load PDF)"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                 ) : (
                   <Save className="w-4 h-4 mr-1" />
                 )}
-                Save PDF
+                Save Annotations
               </Button>
             </>
           )}
@@ -668,7 +740,7 @@ export default function DocumentReviewPage({
 
         {pdfFile && (
           <Document
-            file={memoizedPdfFile}
+            file={pdfFile}
             onLoadSuccess={onDocumentLoadSuccess}
             loading={
               <div className="flex h-full items-center justify-center">
@@ -847,7 +919,7 @@ export default function DocumentReviewPage({
 
       {/* Text Input Modal */}
       {showTextModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-100">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
             <h3 className="text-lg font-semibold mb-4">Tambah Teks</h3>
             <Textarea
