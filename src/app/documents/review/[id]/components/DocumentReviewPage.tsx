@@ -62,6 +62,7 @@ interface Point {
 }
 
 interface Annotation {
+  id: string; // Unique ID for each annotation
   page: number;
   type: "draw" | "text" | "stamp";
   path?: Point[];
@@ -100,6 +101,7 @@ export default function DocumentReviewPage({
   const [error, setError] = useState<string | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
+  const [scale, setScale] = useState(1.0); // Zoom level
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [annotations, setAnnotations] = useState<Annotation[]>(() => {
@@ -134,6 +136,11 @@ export default function DocumentReviewPage({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
 
+  // Dragging state
+  const [draggingAnnotation, setDraggingAnnotation] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<Point>({ x: 0, y: 0 });
+  const [hoveredAnnotation, setHoveredAnnotation] = useState<string | null>(null);
+
   const [action, setAction] = useState<string>(initialAction || "");
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -147,6 +154,13 @@ export default function DocumentReviewPage({
       localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
     }
   }, [annotations, STORAGE_KEY]);
+
+  // Auto-redraw annotations when they change (for real-time preview)
+  useEffect(() => {
+    if (isPdfReady && pageNumber) {
+      redrawAnnotations(pageNumber);
+    }
+  }, [annotations, pageNumber, isPdfReady]);
 
   const loadFile = useCallback(async (retryCount = 0) => {
     if (!documentId) return;
@@ -199,11 +213,38 @@ export default function DocumentReviewPage({
     e: React.MouseEvent<HTMLCanvasElement>,
     page: number
   ) => {
+    // Check if clicking on existing annotation for dragging
     const canvas = canvasRefs.current[page];
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    // Check if clicking on text or stamp annotation (reverse order to get topmost)
+    const clickedAnnotation = [...annotations].reverse().find((ann) => {
+      if (ann.page !== page) return false;
+      if ((ann.type === "text" || ann.type === "stamp") && ann.position) {
+        const pos = ann.position;
+        const width = ann.type === "stamp" ? (ann.width || 100) : 200;
+        const height = ann.type === "stamp" ? (ann.height || 100) : (ann.fontSize || 20) + 5;
+        return (
+          x >= pos.x &&
+          x <= pos.x + width &&
+          y >= pos.y - height &&
+          y <= pos.y + 5
+        );
+      }
+      return false;
+    });
+
+    if (clickedAnnotation && (clickedAnnotation.type === "text" || clickedAnnotation.type === "stamp")) {
+      setDraggingAnnotation(clickedAnnotation.id);
+      setDragOffset({
+        x: x - clickedAnnotation.position!.x,
+        y: y - clickedAnnotation.position!.y,
+      });
+      return;
+    }
 
     if (tool === "text") {
       setTextPosition({ page, x, y });
@@ -212,17 +253,16 @@ export default function DocumentReviewPage({
     }
 
     if (tool === "stamp" && stampImage) {
-      setAnnotations((prev) => [
-        ...prev,
-        {
-          page,
-          type: "stamp",
-          position: { x, y },
-          stampImage,
-          width: 100,
-          height: 100,
-        },
-      ]);
+      const newAnnotation: Annotation = {
+        id: `stamp-${Date.now()}-${Math.random()}`,
+        page,
+        type: "stamp",
+        position: { x, y },
+        stampImage,
+        width: 100,
+        height: 100,
+      };
+      setAnnotations((prev) => [...prev, newAnnotation]);
       return;
     }
 
@@ -231,14 +271,55 @@ export default function DocumentReviewPage({
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>, page: number) => {
-    if (!isDrawing) return;
     const canvas = canvasRefs.current[page];
-    const ctx = canvas?.getContext("2d");
-    if (!ctx || !canvas) return;
-
+    if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    // Update hover state for cursor feedback
+    if (!isDrawing && !draggingAnnotation) {
+      const hoveredAnn = [...annotations].reverse().find((ann) => {
+        if (ann.page !== page) return false;
+        if ((ann.type === "text" || ann.type === "stamp") && ann.position) {
+          const pos = ann.position;
+          const width = ann.type === "stamp" ? (ann.width || 100) : 200;
+          const height = ann.type === "stamp" ? (ann.height || 100) : (ann.fontSize || 20) + 5;
+          return (
+            x >= pos.x &&
+            x <= pos.x + width &&
+            y >= pos.y - height &&
+            y <= pos.y + 5
+          );
+        }
+        return false;
+      });
+
+      setHoveredAnnotation(hoveredAnn?.id || null);
+    }
+
+    // Handle dragging annotation
+    if (draggingAnnotation) {
+      setAnnotations((prev) =>
+        prev.map((ann) =>
+          ann.id === draggingAnnotation && ann.position
+            ? {
+                ...ann,
+                position: {
+                  x: x - dragOffset.x,
+                  y: y - dragOffset.y,
+                },
+              }
+            : ann
+        )
+      );
+      return;
+    }
+
+    if (!isDrawing) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
     currentPathRef.current.push({ x, y });
 
     const last = currentPathRef.current[currentPathRef.current.length - 2];
@@ -255,6 +336,12 @@ export default function DocumentReviewPage({
   };
 
   const stopDrawing = (page: number) => {
+    // Stop dragging
+    if (draggingAnnotation) {
+      setDraggingAnnotation(null);
+      return;
+    }
+
     if (!isDrawing || currentPathRef.current.length < 2) {
       currentPathRef.current = [];
       setIsDrawing(false);
@@ -262,16 +349,15 @@ export default function DocumentReviewPage({
     }
 
     if (tool === "pencil") {
-      setAnnotations((prev) => [
-        ...prev,
-        {
-          page,
-          type: "draw",
-          path: [...currentPathRef.current],
-          color,
-          thickness,
-        },
-      ]);
+      const newAnnotation: Annotation = {
+        id: `draw-${Date.now()}-${Math.random()}`,
+        page,
+        type: "draw",
+        path: [...currentPathRef.current],
+        color,
+        thickness,
+      };
+      setAnnotations((prev) => [...prev, newAnnotation]);
     }
     currentPathRef.current = [];
     setIsDrawing(false);
@@ -287,6 +373,9 @@ export default function DocumentReviewPage({
     annotations
       .filter((a) => a.page === page)
       .forEach((ann) => {
+        const isHovered = ann.id === hoveredAnnotation;
+        const isDragging = ann.id === draggingAnnotation;
+        
         if (ann.type === "draw" && ann.path) {
           ctx.lineWidth = ann.thickness!;
           ctx.strokeStyle = ann.color!;
@@ -298,12 +387,41 @@ export default function DocumentReviewPage({
           );
           ctx.stroke();
         } else if (ann.type === "text" && ann.text && ann.position) {
+          // Draw selection box if hovered or dragging
+          if (isHovered || isDragging) {
+            ctx.strokeStyle = isDragging ? "#2563eb" : "#94a3b8";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            const textWidth = ctx.measureText(ann.text).width;
+            ctx.strokeRect(
+              ann.position.x - 2,
+              ann.position.y - ann.fontSize! - 2,
+              textWidth + 4,
+              ann.fontSize! + 8
+            );
+            ctx.setLineDash([]);
+          }
+          
           ctx.font = `${ann.fontSize}px Arial`;
           ctx.fillStyle = ann.color!;
           ctx.fillText(ann.text, ann.position.x, ann.position.y);
         } else if (ann.type === "stamp" && ann.stampImage && ann.position) {
           const img = new Image();
           img.onload = () => {
+            // Draw selection box if hovered or dragging
+            if (isHovered || isDragging) {
+              ctx.strokeStyle = isDragging ? "#2563eb" : "#94a3b8";
+              ctx.lineWidth = 2;
+              ctx.setLineDash([5, 5]);
+              ctx.strokeRect(
+                ann.position!.x - 2,
+                ann.position!.y - 2,
+                (ann.width || 100) + 4,
+                (ann.height || 100) + 4
+              );
+              ctx.setLineDash([]);
+            }
+            
             ctx.drawImage(
               img,
               ann.position!.x,
@@ -328,17 +446,17 @@ export default function DocumentReviewPage({
   const handleAddText = () => {
     if (!textInput.trim() || !textPosition) return;
 
-    setAnnotations((prev) => [
-      ...prev,
-      {
-        page: textPosition.page,
-        type: "text",
-        text: textInput,
-        position: { x: textPosition.x, y: textPosition.y },
-        color,
-        fontSize,
-      },
-    ]);
+    const newAnnotation: Annotation = {
+      id: `text-${Date.now()}-${Math.random()}`,
+      page: textPosition.page,
+      type: "text",
+      text: textInput,
+      position: { x: textPosition.x, y: textPosition.y },
+      color,
+      fontSize,
+    };
+
+    setAnnotations((prev) => [...prev, newAnnotation]);
 
     setTextInput("");
     setShowTextModal(false);
@@ -596,64 +714,68 @@ export default function DocumentReviewPage({
 
   return (
     <div className="fixed inset-0 bg-white flex flex-col z-50">
-      {/* Header */}
-      <div className="border-b bg-white p-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <Button size="icon" variant="ghost" onClick={onClose}>
-            <ArrowLeft className="w-5 h-5" />
+      {/* Header - More Compact */}
+      <div className="border-b bg-white p-2 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <Button size="icon" variant="ghost" onClick={onClose} className="h-8 w-8">
+            <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold">{documentName}</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-base font-bold">{documentName}</h1>
+            <p className="text-xs text-gray-500">
               {!isPdfReady ? (
                 <span className="text-blue-600 flex items-center gap-1">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   Loading PDF...
                 </span>
               ) : isReviewer ? (
-                "Review dokumen dan pilih aksi di bawah"
+                "Review dokumen, tambahkan anotasi (text/gambar bisa di-drag), lalu pilih aksi"
               ) : (
-                "Coret dokumen lalu submit revisi"
+                "Tambahkan anotasi (text/gambar bisa di-drag), lalu submit revisi"
               )}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {(isReviewer || userDivision === Division.Vendor) && (
             <>
-              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2">
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
                 <Button
                   size="icon"
                   variant={tool === "pencil" ? "default" : "ghost"}
                   onClick={() => setTool("pencil")}
                   title="Pensil"
+                  className="h-7 w-7"
                 >
-                  <Pencil className="w-4 h-4" />
+                  <Pencil className="w-3.5 h-3.5" />
                 </Button>
                 <Button
                   size="icon"
                   variant={tool === "eraser" ? "default" : "ghost"}
                   onClick={() => setTool("eraser")}
                   title="Penghapus"
+                  className="h-7 w-7"
                 >
-                  <Eraser className="w-4 h-4" />
+                  <Eraser className="w-3.5 h-3.5" />
                 </Button>
                 <Button
                   size="icon"
                   variant={tool === "text" ? "default" : "ghost"}
                   onClick={() => setTool("text")}
-                  title="Tambah Teks"
+                  title="Tambah Teks (klik untuk letakkan, drag untuk geser)"
+                  className="h-7 w-7"
                 >
-                  <Type className="w-4 h-4" />
+                  <Type className="w-3.5 h-3.5" />
                 </Button>
                 <Button
                   size="icon"
                   variant={tool === "stamp" ? "default" : "ghost"}
                   onClick={() => fileInputRef.current?.click()}
-                  title="Tambah Stempel/Tanda Tangan"
+                  title="Tambah Stempel/Tanda Tangan (klik untuk letakkan, drag untuk geser)"
+                  className="h-7 w-7"
                 >
-                  <ImageIcon className="w-4 h-4" />
+                  <ImageIcon className="w-3.5 h-3.5" />
                 </Button>
                 <input
                   ref={fileInputRef}
@@ -671,9 +793,9 @@ export default function DocumentReviewPage({
                       key={c}
                       onClick={() => setColor(c)}
                       className={cn(
-                        "w-9 h-9 rounded-full border-2 transition-all",
+                        "w-6 h-6 rounded-full border-2 transition-all",
                         color === c
-                          ? "border-gray-900 scale-110 ring-2 ring-offset-2 ring-gray-400"
+                          ? "border-gray-900 scale-110 ring-2 ring-offset-1 ring-gray-400"
                           : "border-gray-300"
                       )}
                       style={{ backgroundColor: c }}
@@ -688,7 +810,7 @@ export default function DocumentReviewPage({
                     key={t}
                     onClick={() => setThickness(t)}
                     className={cn(
-                      "w-9 h-9 rounded-full flex items-center justify-center",
+                      "w-7 h-7 rounded-full flex items-center justify-center",
                       thickness === t ? "bg-primary text-white" : "bg-white"
                     )}
                   >
@@ -700,8 +822,8 @@ export default function DocumentReviewPage({
                 ))}
               </div>
 
-              <Button size="sm" variant="outline" onClick={clearAll}>
-                <Trash2 className="w-4 h-4 mr-1" />
+              <Button size="sm" variant="outline" onClick={clearAll} className="h-7 text-xs">
+                <Trash2 className="w-3 h-3 mr-1" />
                 Clear
               </Button>
 
@@ -711,21 +833,65 @@ export default function DocumentReviewPage({
                 onClick={handleSave}
                 disabled={isSaving || annotations.length === 0}
                 title="Simpan annotations ke server (tidak perlu load PDF)"
+                className="h-7 text-xs"
               >
                 {isSaving ? (
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                 ) : (
-                  <Save className="w-4 h-4 mr-1" />
+                  <Save className="w-3 h-3 mr-1" />
                 )}
-                Save Annotations
+                Save
               </Button>
             </>
           )}
         </div>
       </div>
 
-      {/* PDF Viewer */}
-      <div className="flex-1 overflow-auto bg-gray-50 p-6">
+      {/* PDF Viewer with Zoom Controls */}
+      <div className="flex-1 overflow-auto bg-gray-50 p-4 relative">
+        {/* Helper Tooltip */}
+        {(annotations.some(a => a.type === "text" || a.type === "stamp") && !draggingAnnotation) && (
+          <div className="absolute top-4 left-4 z-10 bg-blue-50 border border-blue-200 rounded-lg shadow-lg px-3 py-2 text-xs text-blue-700 max-w-xs">
+            💡 <strong>Tip:</strong> Hover pada text/foto untuk melihat highlight, klik dan drag untuk menggeser posisi
+          </div>
+        )}
+        
+        {/* Zoom Controls */}
+        <div className="absolute top-4 right-4 z-10 bg-white rounded-lg shadow-lg p-2 flex flex-col gap-2">
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={() => setScale((s) => Math.min(s + 0.25, 3))}
+            disabled={scale >= 3}
+            className="h-8 w-8"
+            title="Zoom In"
+          >
+            <span className="text-lg font-bold">+</span>
+          </Button>
+          <div className="text-xs font-semibold text-center text-gray-600 px-1">
+            {Math.round(scale * 100)}%
+          </div>
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={() => setScale((s) => Math.max(s - 0.25, 0.5))}
+            disabled={scale <= 0.5}
+            className="h-8 w-8"
+            title="Zoom Out"
+          >
+            <span className="text-lg font-bold">-</span>
+          </Button>
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={() => setScale(1)}
+            className="h-8 w-8 text-xs"
+            title="Reset Zoom"
+          >
+            1:1
+          </Button>
+        </div>
+
         {isLoading && !pdfFile && (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
@@ -749,7 +915,7 @@ export default function DocumentReviewPage({
             }
           >
             <div className="flex justify-center">
-              <div className="relative shadow-2xl bg-white">
+              <div className="relative shadow-2xl bg-white" style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}>
                 <Page
                   pageNumber={pageNumber}
                   width={900}
@@ -776,12 +942,28 @@ export default function DocumentReviewPage({
                   ref={(el) => {
                     canvasRefs.current[pageNumber] = el;
                   }}
-                  className="absolute top-0 left-0 cursor-crosshair z-50"
-                  style={{ background: "transparent" }}
+                  className="absolute top-0 left-0 z-50"
+                  style={{ 
+                    background: "transparent",
+                    cursor: draggingAnnotation 
+                      ? "grabbing" 
+                      : hoveredAnnotation 
+                      ? "grab" 
+                      : tool === "pencil" 
+                      ? "crosshair"
+                      : tool === "eraser"
+                      ? "pointer"
+                      : tool === "text" || tool === "stamp" 
+                      ? "crosshair" 
+                      : "default"
+                  }}
                   onMouseDown={(e) => startDrawing(e, pageNumber)}
                   onMouseMove={(e) => draw(e, pageNumber)}
                   onMouseUp={() => stopDrawing(pageNumber)}
-                  onMouseLeave={() => stopDrawing(pageNumber)}
+                  onMouseLeave={() => {
+                    stopDrawing(pageNumber);
+                    setHoveredAnnotation(null);
+                  }}
                 />
               </div>
             </div>
@@ -789,11 +971,11 @@ export default function DocumentReviewPage({
         )}
       </div>
 
-      {/* Footer */}
+      {/* Footer - More Compact */}
       {numPages > 0 && (
-        <div className="border-t bg-white p-5 flex flex-col gap-4 shadow-sm">
+        <div className="border-t bg-white p-3 flex flex-col gap-3 shadow-sm">
           <div className="flex justify-between items-center w-full">
-            <p className="text-sm text-gray-600">
+            <p className="text-xs text-gray-600">
               Halaman <strong>{pageNumber}</strong> dari{" "}
               <strong>{numPages}</strong>
             </p>
@@ -803,53 +985,55 @@ export default function DocumentReviewPage({
                 variant="outline"
                 onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
                 disabled={pageNumber <= 1}
+                className="h-7"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3 h-3" />
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setPageNumber((p) => Math.min(numPages, p + 1))}
                 disabled={pageNumber >= numPages}
+                className="h-7"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3 h-3" />
               </Button>
             </div>
           </div>
 
           {isReviewer && (
-            <div className="flex flex-col gap-4 w-full">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex items-center gap-3">
                 <Select value={action} onValueChange={setAction}>
-                  <SelectTrigger className="w-72">
+                  <SelectTrigger className="w-64 h-8 text-sm">
                     <SelectValue placeholder="Pilih aksi..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="approve">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        Approve
+                        <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                        <span className="text-sm">Approve</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="approveWithNotes">
                       <div className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-blue-600" />
-                        Approve with Notes
+                        <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="text-sm">Approve with Notes</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="returnForCorrection">
                       <div className="flex items-center gap-2">
-                        <Send className="w-4 h-4 text-orange-600" />
-                        Return for Correction
+                        <Send className="w-3.5 h-3.5 text-orange-600" />
+                        <span className="text-sm">Return for Correction</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
 
                 <Button
-                  size="lg"
+                  size="default"
                   className={cn(
-                    "min-w-56 font-semibold",
+                    "min-w-48 font-semibold h-8 text-sm",
                     action === "approve" && "bg-green-600 hover:bg-green-700",
                     action === "approveWithNotes" &&
                       "bg-blue-600 hover:bg-blue-700",
@@ -864,9 +1048,9 @@ export default function DocumentReviewPage({
                   }
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
-                    <Send className="w-5 h-5 mr-2" />
+                    <Send className="w-4 h-4 mr-2" />
                   )}
                   {action === "approve" && "Approve Dokumen"}
                   {action === "approveWithNotes" && "Approve + Notes"}
@@ -885,7 +1069,7 @@ export default function DocumentReviewPage({
                     }
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-28 resize-none"
+                    className="min-h-20 resize-none text-sm"
                     autoFocus
                   />
                   {notes.trim() === "" && (
@@ -901,14 +1085,15 @@ export default function DocumentReviewPage({
           {!isReviewer && userDivision === Division.Vendor && (
             <div className="flex justify-end">
               <Button
-                size="lg"
+                size="default"
                 onClick={handleSubmitRevision}
                 disabled={isLoading || annotations.length === 0}
+                className="h-8 text-sm"
               >
                 {isLoading ? (
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <Send className="w-5 h-5 mr-2" />
+                  <Send className="w-4 h-4 mr-2" />
                 )}
                 Submit Revisi
               </Button>
