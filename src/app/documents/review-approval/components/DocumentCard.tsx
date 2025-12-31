@@ -18,6 +18,7 @@ import {
 import { Document, Status, Division, User } from "@/app/types";
 import api from "@/lib/axios";
 import RevisionUploadModal from "@/components/modal/RevisionUploadModal";
+import { encodeDocumentId } from "@/lib/idCodec";
 
 interface DocumentCardProps {
   document: Document;
@@ -90,7 +91,8 @@ export default function EngineerDocumentCard({
       initialAction: action,
     };
     sessionStorage.setItem("documentReviewData", JSON.stringify(data));
-    router.push(`/documents/review/${document.id}`);
+    const encodedId = encodeDocumentId(document.id);
+    router.push(`/documents/review/${encodedId}`);
   };
 
   return (

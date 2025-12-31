@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import DocumentReviewPage from "./components/DocumentReviewPage";
+import { decodeDocumentId } from "@/lib/idCodec";
 
 export default function DocumentReviewRoute() {
   const params = useParams();
@@ -13,6 +14,7 @@ export default function DocumentReviewRoute() {
     userDivision?: any;
     initialAction?: "approve" | "approveWithNotes" | "returnForCorrection" | null;
   } | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
 
   useEffect(() => {
     // Get data from sessionStorage (passed from card click)
@@ -20,14 +22,23 @@ export default function DocumentReviewRoute() {
     if (storedData) {
       const parsed = JSON.parse(storedData);
       setDocumentData(parsed);
+      setRouteError(null);
     } else if (params.id) {
-      // Fallback: just use ID from URL
-      setDocumentData({
-        documentId: Number(params.id),
-        documentName: "Document",
-        userDivision: undefined,
-        initialAction: null,
-      });
+      const rawParam = Array.isArray(params.id) ? params.id[0] : params.id;
+      const decodedId = decodeDocumentId(String(rawParam));
+
+      if (decodedId !== null) {
+        setDocumentData({
+          documentId: decodedId,
+          documentName: "Document",
+          userDivision: undefined,
+          initialAction: null,
+        });
+        setRouteError(null);
+      } else {
+        setDocumentData(null);
+        setRouteError("Link dokumen tidak valid atau sudah kadaluarsa.");
+      }
     }
   }, [params.id]);
 
@@ -40,6 +51,22 @@ export default function DocumentReviewRoute() {
     sessionStorage.removeItem("documentReviewData");
     router.back();
   };
+
+  if (routeError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <p className="text-gray-700 font-medium">{routeError}</p>
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 bg-[#125d72] text-white rounded-md"
+          >
+            Kembali
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!documentData) {
     return (

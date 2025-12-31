@@ -17,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AlertCircle, Loader2, X, Pencil} from "lucide-react";
 import { isAxiosError } from "axios";
 import { Button } from "@/components/ui/button";
+import { encodeDocumentId } from "@/lib/idCodec";
 
 type FileForUpload = UploadedFile & {
   file: File;
@@ -236,9 +237,12 @@ export default function VendorUploadPage({
                     
                       {/* Preview dokumen */}
                       <Button
+                        type="button"
                         size="lg"
                         className="bg-green-600 hover:bg-green-700"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           const data = {
                             documentId: doc.id,
                             documentName: doc.name,
@@ -246,7 +250,8 @@ export default function VendorUploadPage({
                             initialAction: null,
                           };
                           sessionStorage.setItem("documentReviewData", JSON.stringify(data));
-                          router.push(`/documents/review/${doc.id}`);
+                          const encodedId = encodeDocumentId(doc.id);
+                          router.push(`/documents/review/${encodedId}`);
                         }}
                       >
                         <Pencil className="w-5 h-5 mr-2" /> Preview Dokumen
@@ -255,11 +260,15 @@ export default function VendorUploadPage({
                       {/*  Upload Revisi Biasa */}
                       <label className="cursor-pointer">
                         <Button
+                          type="button"
                           size="lg"
                           variant="secondary"
                           disabled={resubmitUploadingId === doc.id}
+                          asChild
                         >
-                          {resubmitUploadingId === doc.id ? "Uploading..." : "Upload Revisi Biasa"}
+                          <span>
+                            {resubmitUploadingId === doc.id ? "Uploading..." : "Upload Revisi Biasa"}
+                          </span>
                         </Button>
                         <input
                           type="file"
@@ -268,17 +277,29 @@ export default function VendorUploadPage({
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
+                            
+                            const confirmUpload = confirm(`Upload revisi untuk dokumen "${doc.name}"?`);
+                            if (!confirmUpload) {
+                              e.target.value = "";
+                              return;
+                            }
+                            
                             setResubmitUploadingId(doc.id);
                             const form = new FormData();
                             form.append("file", file);
+                            
                             try {
-                              await api.patch(`/documents/${doc.id}/resubmit`, form);
+                              await api.patch(`/documents/${doc.id}/resubmit`, form, {
+                                timeout: 300000, // 5 minutes timeout
+                              });
                               alert("Revisi biasa berhasil disubmit!");
                               await refreshResubmitDocs();
                             } catch (err: any) {
+                              console.error("Upload error:", err);
                               alert(err.response?.data?.message || "Gagal upload revisi");
                             } finally {
                               setResubmitUploadingId(null);
+                              e.target.value = "";
                             }
                           }}
                         />

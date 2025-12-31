@@ -8,6 +8,7 @@ import { Eye, Download, FileText } from "lucide-react"
 import { type Document, Division } from "@/app/types"
 import api from "@/lib/axios"
 import RevisionUploadModal from "@/components/modal/RevisionUploadModal"
+import { encodeDocumentId } from "@/lib/idCodec"
 
 interface ManagerDocumentCardProps {
   document: Document
@@ -26,7 +27,8 @@ export default function ManagerDocumentCard({ document: doc, onRefresh }: Manage
       initialAction: null,
     };
     sessionStorage.setItem("documentReviewData", JSON.stringify(data));
-    router.push(`/documents/review/${doc.id}`);
+    const encodedId = encodeDocumentId(doc.id);
+    router.push(`/documents/review/${encodedId}`);
   };
 
   const handleDownload = async () => {

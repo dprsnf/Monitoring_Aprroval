@@ -291,8 +291,8 @@ export default function DetailModal({
                           {getStatusBadge(approval.status)}
                         </div>
                         {approval.notes && (
-                          <p className="text-sm text-gray-700 mt-1 p-2 bg-gray-50 rounded-md border">
-                            {approval.notes}
+                          <p className="text-sm text-gray-700 mt-1 p-2 bg-yellow-50 rounded-md border border-yellow-200">
+                            <span className="font-semibold text-gray-900">Notes:</span> {approval.notes}
                           </p>
                         )}
                         <p className="text-xs text-gray-500 mt-1">
@@ -304,6 +304,33 @@ export default function DetailModal({
                 </CardContent>
               </Card>
             )}
+
+          {/* ✅ BARU: Progress Log */}
+          {selectedDocument.progress && selectedDocument.progress.length > 0 && (
+            <Card className="shadow-lg border border-gray-200">
+              <CardHeader className="bg-gray-50 border-b p-3 sm:p-4">
+                <CardTitle className="text-gray-900 text-sm sm:text-base md:text-lg flex items-center gap-2">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-[#125d72]" />
+                  Document Progress Log
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-4 md:p-6">
+                <div className="relative space-y-3 border-l-2 border-blue-200 pl-6">
+                  {selectedDocument.progress.map((log, index) => (
+                    <div key={index} className="relative">
+                      <div className="absolute -left-[33px] top-1 w-4 h-4 bg-blue-400 rounded-full border-4 border-white"></div>
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        {log}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Step {index + 1} of {selectedDocument.progress.length}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <div />
         </div>
 

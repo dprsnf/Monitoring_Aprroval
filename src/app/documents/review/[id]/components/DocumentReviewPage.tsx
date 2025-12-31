@@ -655,6 +655,7 @@ export default function DocumentReviewPage({
         headers: {
           "Content-Type": "application/json",
         },
+        timeout: 300000, // 5 minutes for annotation merging
       });
 
       // Clear localStorage after successful submit
@@ -693,6 +694,7 @@ export default function DocumentReviewPage({
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        timeout: 300000, // 5 minutes for PDF generation and upload
       });
 
       alert("Revisi berhasil dikirim!");

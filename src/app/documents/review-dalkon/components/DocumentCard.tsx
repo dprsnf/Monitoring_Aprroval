@@ -12,6 +12,7 @@ import { Document, Division, Status } from "@/app/types";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
+import { encodeDocumentId } from "@/lib/idCodec";
 
 interface DalkonDocumentCardProps {
   document: Document;
@@ -40,7 +41,8 @@ export default function DalkonDocumentCard({
       initialAction: null,
     };
     sessionStorage.setItem("documentReviewData", JSON.stringify(data));
-    router.push(`/documents/review/${doc.id}`);
+    const encodedId = encodeDocumentId(doc.id);
+    router.push(`/documents/review/${encodedId}`);
   };
 
   const isDalkon = currentUser?.division === Division.Dalkon;

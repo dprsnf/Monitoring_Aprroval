@@ -137,9 +137,21 @@ function RevisionUploadModalContent({
         }
         const role = roleMap[userDivision!] || "dalkon"
         endpoint = `/documents/${documentId}/${role}-review`
+        
+        // ✅ Debug: Log FormData contents
+        console.log("📤 Sending FormData to:", endpoint);
+        console.log("📤 Action:", formData.get("action"));
+        console.log("📤 Notes:", formData.get("notes"));
+        console.log("📤 File:", formData.get("file"));
       }
 
-      await api.patch(endpoint, formData)
+      await api.patch(endpoint, formData, {
+        timeout: 300000, // 5 minutes for file upload and annotation processing
+        headers: {
+          // ⚠️ JANGAN set Content-Type manual untuk FormData
+          // Axios akan set otomatis dengan boundary yang benar
+        },
+      })
 
       alert("Upload revisi berhasil!")
       onSubmitSuccess?.()

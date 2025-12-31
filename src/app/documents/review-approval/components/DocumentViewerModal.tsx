@@ -527,6 +527,7 @@
           headers: {
             "Content-Type": "multipart/form-data",
           },
+          timeout: 300000, // 5 minutes for PDF generation and upload
         });
 
         alert("Revisi berhasil dikirim!");

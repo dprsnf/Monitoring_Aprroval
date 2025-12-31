@@ -272,7 +272,9 @@ export default function ApprovalPage() {
     setLoading(true);
     setError(null);
     try {
-      await api.patch(endpoint, { action, notes });
+      await api.patch(endpoint, { action, notes }, {
+        timeout: 300000, // 5 minutes for annotation processing
+      });
 
       alert(`Status dokumen "${selectedDocument.name}" telah diperbarui.`);
 

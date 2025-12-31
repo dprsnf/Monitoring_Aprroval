@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ApiErrorResponse, FormErrors } from "@/app/types";
 import api from "@/lib/axios";
-import { ensureGuestMiddleware } from "@/app/proxy";
 import Cookies from "js-cookie";
 import { isAxiosError } from "axios";
 import { cn } from "@/lib/utils";
@@ -21,10 +20,6 @@ export default function LoginPage() {
   const [apiError, setApiError] = useState("");
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    ensureGuestMiddleware({ redirectTo: "/dashboard" });
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

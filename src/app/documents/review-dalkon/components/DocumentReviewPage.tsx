@@ -133,7 +133,9 @@ export default function DocumentReviewPage() {
           return;
         }
 
-        await api.patch(endpoint, payload);
+        await api.patch(endpoint, payload, {
+          timeout: 300000, // 5 minutes for annotation processing
+        });
 
         alert(`Dokumen berhasil diproses.`);
         await loadDocuments();
@@ -184,11 +186,9 @@ export default function DocumentReviewPage() {
           return;
         }
 
-        await api.patch(endpoint, payload);
-
-        alert(
-          `Dokumen "${selectedDocument.name}" dikembalikan untuk perbaikan.`
-        );
+        await api.patch(endpoint, payload, {
+          timeout: 300000, // 5 minutes for annotation processing
+        });
         await loadDocuments();
         closeModals();
       } catch (err: unknown) {
@@ -221,6 +221,8 @@ export default function DocumentReviewPage() {
         await api.patch(`/documents/${selectedDocument.id}/dalkon-review`, {
           action: "reject",
           notes,
+        }, {
+          timeout: 300000, // 5 minutes for annotation processing
         });
 
         alert(`Dokumen "${selectedDocument.name}" berhasil ditolak.`);
