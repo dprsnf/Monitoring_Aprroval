@@ -4,7 +4,9 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Eye, Download, FileText } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Eye, Download, FileText, CheckCircle, Send, Loader2 } from "lucide-react"
 import { type Document, Division } from "@/app/types"
 import api from "@/lib/axios"
 import RevisionUploadModal from "@/components/modal/RevisionUploadModal"
@@ -18,6 +20,10 @@ interface ManagerDocumentCardProps {
 export default function ManagerDocumentCard({ document: doc, onRefresh }: ManagerDocumentCardProps) {
   const router = useRouter();
   const [showRevisionModal, setShowRevisionModal] = useState(false)
+  const [showActionModal, setShowActionModal] = useState(false)
+  const [actionType, setActionType] = useState<"approve" | "returnForCorrection" | null>(null)
+  const [notes, setNotes] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleOpenPage = () => {
     const data = {
@@ -46,6 +52,78 @@ export default function ManagerDocumentCard({ document: doc, onRefresh }: Manage
     } catch (err) {
       alert("Gagal download file.")
     }
+  }
+
+  const handleOpenActionModal = (type: "approve" | "returnForCorrection") => {
+    setActionType(type)
+    setNotes("")
+    setShowActionModal(true)
+  }
+
+  const handleSubmitAction = async () => {
+    if (!actionType) return
+
+    // Validasi notes untuk return for correction
+    if (actionType === "returnForCorrection" && !notes.trim()) {
+      alert("Notes wajib diisi untuk Return for Correction")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const formData = new FormData()
+      formData.append("action", actionType)
+      
+      if (notes.trim()) {
+        formData.append("notes", notes.trim())
+      }
+
+      await api.patch(`/documents/${doc.id}/manager-review`, formData, {
+        timeout: 300000,
+      })
+
+      let successMessage = "Dokumen berhasil diproses!"
+      if (actionType === "approve") {
+        successMessage = "Dokumen berhasil diapprove! Menunggu final approval dari Dalkon."
+      } else if (actionType === "returnForCorrection") {
+        successMessage = "Dokumen berhasil dikembalikan ke Vendor untuk perbaikan."
+      }
+
+      alert(successMessage)
+      setShowActionModal(false)
+      onRefresh()
+    } catch (err: any) {
+      console.error(err)
+      alert(err.response?.data?.message || "Gagal memproses dokumen.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const getActionModalConfig = () => {
+    if (actionType === "approve") {
+      return {
+        title: "Approve Dokumen",
+        description: "Anda akan menyetujui dokumen ini. Status akan tetap di 'Manager Review' dan menunggu final approval dari Dalkon.",
+        buttonText: "Approve",
+        buttonClass: "bg-green-600 hover:bg-green-700",
+        icon: <CheckCircle className="w-5 h-5" />,
+        notesRequired: false,
+        notesPlaceholder: "Catatan tambahan (opsional)...",
+      }
+    } else if (actionType === "returnForCorrection") {
+      return {
+        title: "Return for Correction",
+        description: "Dokumen akan dikembalikan ke Vendor untuk perbaikan. Jelaskan revisi yang diperlukan.",
+        buttonText: "Return ke Vendor",
+        buttonClass: "bg-orange-600 hover:bg-orange-700",
+        icon: <Send className="w-5 h-5" />,
+        notesRequired: true,
+        notesPlaceholder: "Jelaskan revisi yang diperlukan (wajib)...",
+      }
+    }
+    return null
   }
 
   return (
@@ -95,10 +173,31 @@ export default function ManagerDocumentCard({ document: doc, onRefresh }: Manage
               Download
             </Button>
 
-            <Button onClick={() => setShowRevisionModal(true)} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={() => setShowRevisionModal(true)} className="bg-cyan-600 hover:bg-cyan-700">
               <FileText className="w-4 h-4 mr-2" />
               Review & Upload
             </Button>
+
+            <div className="border-t pt-3 mt-2">
+              <p className="text-xs font-semibold text-gray-600 mb-2">Quick Actions:</p>
+              <Button 
+                onClick={() => handleOpenActionModal("approve")} 
+                className="w-full mb-2 bg-green-600 hover:bg-green-700"
+                size="sm"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Approve
+              </Button>
+
+              <Button 
+                onClick={() => handleOpenActionModal("returnForCorrection")} 
+                className="w-full bg-orange-600 hover:bg-orange-700"
+                size="sm"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Return for Correction
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -117,6 +216,78 @@ export default function ManagerDocumentCard({ document: doc, onRefresh }: Manage
           }}
         />
       )}
+
+      {/* Action Modal */}
+      <Dialog open={showActionModal} onOpenChange={setShowActionModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {getActionModalConfig()?.icon}
+              {getActionModalConfig()?.title}
+            </DialogTitle>
+            <DialogDescription>
+              {getActionModalConfig()?.description}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-gray-700 mb-1">Dokumen:</p>
+              <p className="text-sm text-gray-600">{doc.name}</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                Notes {getActionModalConfig()?.notesRequired && <span className="text-red-500">*</span>}
+              </label>
+              <Textarea
+                placeholder={getActionModalConfig()?.notesPlaceholder}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[100px] resize-none"
+                disabled={isSubmitting}
+              />
+              {getActionModalConfig()?.notesRequired && !notes.trim() && (
+                <p className="text-xs text-orange-600 mt-1">
+                  Notes wajib diisi untuk action ini
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowActionModal(false)}
+              disabled={isSubmitting}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSubmitAction}
+              disabled={
+                isSubmitting ||
+                (getActionModalConfig()?.notesRequired && !notes.trim())
+              }
+              className={getActionModalConfig()?.buttonClass}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  {getActionModalConfig()?.icon}
+                  <span className="ml-2">{getActionModalConfig()?.buttonText}</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

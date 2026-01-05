@@ -14,22 +14,29 @@ interface JwtPayload {
 // DAFTAR ROUTE PER ROLE 
 const ROUTES = {
   Vendor: [
-    "/documents/vendor-upload",
+    "/dashboard",
+    "/upload-drawing",
     "/approval-history",
     "/approval-progress",
   ],
   Engineering: [
+    "/dashboard",
     "/documents/review-approval",
+    "/documents/review/",
     "/approval-history",
     "/approval-progress",
   ],
   Dalkon: [
-    "/documents/review-management",
+    "/dashboard",
+    "/documents/review-dalkon",
+    "/documents/review/",
     "/approval-history",
     "/approval-progress",
   ],
   Manager: [
-    "/documents/review-management",
+    "/dashboard",
+    "/documents/review-manager",
+    "/documents/review/",
     "/approval-history",
     "/approval-progress",
   ],
@@ -121,13 +128,11 @@ export async function proxy(request: NextRequest) {
 }
 
 function redirectToLogin(request: NextRequest) {
-  const loginUrl = new URL("/auth/login", request.url);
-  loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-  return NextResponse.redirect(loginUrl);
+  return NextResponse.redirect(new URL("/auth/login", request.url));
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public(?:/|/js/)|.*\\.(?:svg|png|jpg|jpeg|gif|webp|js|css|html|mjs)).*)", // Non-capturing groups digunakan
   ],
 };

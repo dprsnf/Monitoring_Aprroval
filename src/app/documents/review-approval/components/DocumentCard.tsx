@@ -139,7 +139,7 @@ export default function EngineerDocumentCard({
                 </div>
 
                 <p className="text-gray-700 text-sm leading-relaxed mb-3">
-                  Progress: {latestProgress}
+                  Catatan: {latestProgress}
                 </p>
 
                 {document.remarks && (

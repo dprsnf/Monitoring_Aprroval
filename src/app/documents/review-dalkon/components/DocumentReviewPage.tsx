@@ -107,12 +107,18 @@ export default function DocumentReviewPage() {
         let payload: any = { action: "approve", notes };
 
         if (currentUser.division === Division.Dalkon) {
-            // Dalkon punya 2 fase Approve (ke Engineer atau ke Manager)
+            // Dalkon punya 3 fase Approve:
+            // 1. submitted → Engineer
+            // 2. approved/approvedWithNotes → Manager
+            // 3. inReviewConsultant → Final Approval
             if (selectedDocument.status === Status.submitted) {
                 // Forward ke Engineer
                 endpoint = `/documents/${selectedDocument.id}/dalkon-review`;
             } else if (selectedDocument.status === Status.approved || selectedDocument.status === Status.approvedWithNotes) {
                 // Forward ke Manager
+                endpoint = `/documents/${selectedDocument.id}/dalkon-review`;
+            } else if (selectedDocument.status === Status.inReviewConsultant) {
+                // ✅ Final Approval (Manager sudah approve, kembali ke Dalkon)
                 endpoint = `/documents/${selectedDocument.id}/dalkon-review`;
             } else {
                 setError("Dalkon: Dokumen tidak dalam status yang tepat untuk diteruskan.");
@@ -137,7 +143,19 @@ export default function DocumentReviewPage() {
           timeout: 300000, // 5 minutes for annotation processing
         });
 
-        alert(`Dokumen berhasil diproses.`);
+        // ✅ Success message berdasarkan status dokumen
+        let successMessage = "Dokumen berhasil diproses.";
+        if (currentUser.division === Division.Dalkon) {
+          if (selectedDocument.status === Status.submitted) {
+            successMessage = "✅ Dokumen berhasil dikirim ke Engineer untuk review teknis.";
+          } else if (selectedDocument.status === Status.approved || selectedDocument.status === Status.approvedWithNotes) {
+            successMessage = "✅ Dokumen berhasil dikirim ke Manager untuk approval.";
+          } else if (selectedDocument.status === Status.inReviewConsultant) {
+            successMessage = "🎉 Final Approval berhasil! Dokumen sudah selesai diproses.";
+          }
+        }
+        
+        alert(successMessage);
         await loadDocuments();
         closeModals();
       } catch (err: unknown) {
@@ -165,8 +183,14 @@ export default function DocumentReviewPage() {
         let payload: any = { action: "returnForCorrection", notes };
 
         if (currentUser.division === Division.Dalkon) {
-            // Dalkon return hanya bisa setelah engineer review (sebelum ke Manager)
-            if (selectedDocument.status === Status.approved || selectedDocument.status === Status.approvedWithNotes) {
+            // ✅ FIX: Dalkon bisa return dari berbagai status
+            // - submitted (dokumen baru dari vendor)
+            // - approved/approvedWithNotes (dari Engineer)
+            // - inReviewConsultant (dari Manager)
+            if (selectedDocument.status === Status.submitted ||
+                selectedDocument.status === Status.approved || 
+                selectedDocument.status === Status.approvedWithNotes ||
+                selectedDocument.status === Status.inReviewConsultant) {
                 endpoint = `/documents/${selectedDocument.id}/dalkon-review`;
             } else {
                 setError("Dalkon: Dokumen tidak dalam status yang tepat untuk dikembalikan.");
@@ -512,6 +536,10 @@ export default function DocumentReviewPage() {
           setManagementNotes={setManagementNotes as Dispatch<SetStateAction<string>>}
           onClose={closeModals}
           onSubmit={() => handleReviewSubmit(managementNotes)}
+          actionType={
+            selectedDocument.status === Status.submitted ? "forward" : "approve"
+          }
+          documentStatus={selectedDocument.status}
         />
       )}
 

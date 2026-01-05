@@ -83,6 +83,7 @@ interface DocumentReviewPageProps {
   userDivision?: Division;
   onSubmitSuccess?: () => void;
   initialAction?: "approve" | "approveWithNotes" | "returnForCorrection" | null;
+  documentStatus?: string; // Status dokumen saat ini untuk menentukan action yang tersedia
 }
 
 export default function DocumentReviewPage({
@@ -92,6 +93,7 @@ export default function DocumentReviewPage({
   userDivision,
   onSubmitSuccess,
   initialAction = null,
+  documentStatus,
 }: DocumentReviewPageProps) {
   const STORAGE_KEY = `annotations_${documentId}`;
   
@@ -146,7 +148,7 @@ export default function DocumentReviewPage({
   const [isSaving, setIsSaving] = useState(false);
 
   const needsNotes =
-    action === "approveWithNotes" || action === "returnForCorrection";
+    action === "approveWithNotes" || action === "returnForCorrection" || action === "reject";
 
   // Persist annotations to localStorage
   useEffect(() => {
@@ -617,13 +619,24 @@ export default function DocumentReviewPage({
 
   const handleSubmit = async () => {
     if (!action) {
-      alert("Pilih aksi terlebih dahulu.");
+      alert("❌ Pilih aksi terlebih dahulu.");
       return;
     }
 
     if (needsNotes && !notes.trim()) {
-      alert("Notes wajib diisi untuk aksi ini.");
+      alert("⚠️ Notes wajib diisi untuk aksi ini.");
       return;
+    }
+
+    // Konfirmasi untuk action penting
+    if (action === "reject" || (action === "approve" && documentStatus === "inReviewManager")) {
+      const confirmText = action === "reject" 
+        ? "⚠️ PERHATIAN!\\n\\nAnda akan REJECT dokumen ini.\\nDokumen yang di-reject tidak dapat diresubmit.\\n\\nLanjutkan?"
+        : "🎉 FINAL APPROVAL\\n\\nAnda akan melakukan final approval.\\nSetelah ini dokumen akan selesai diproses.\\n\\nLanjutkan?";
+      
+      if (!confirm(confirmText)) {
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -637,36 +650,85 @@ export default function DocumentReviewPage({
       };
       const role = roleMap[userDivision!] || "dalkon";
 
-      // Kirim annotations sebagai JSON - backend akan merge ke PDF
-      const payload: any = {
-        action: action,
-      };
+      // ✅ Kirim sebagai FormData agar kompatibel dengan FileInterceptor di backend
+      const formData = new FormData();
+      formData.append("action", action);
 
       if (notes.trim()) {
-        payload.notes = notes.trim();
+        formData.append("notes", notes.trim());
       }
 
-      // Kirim annotations jika ada
+      // Kirim annotations sebagai JSON string
       if (annotations.length > 0) {
-        payload.annotations = annotations;
+        formData.append("annotations", JSON.stringify(annotations));
       }
 
-      await api.patch(`/documents/${documentId}/${role}-review`, payload, {
-        headers: {
-          "Content-Type": "application/json",
-        },
+      // Log untuk debugging
+      console.log("📤 Submitting document review:", {
+        documentId,
+        action,
+        role,
+        hasNotes: !!notes.trim(),
+        hasAnnotations: annotations.length > 0,
+        documentStatus
+      });
+
+      await api.patch(`/documents/${documentId}/${role}-review`, formData, {
         timeout: 300000, // 5 minutes for annotation merging
       });
 
       // Clear localStorage after successful submit
       localStorage.removeItem(STORAGE_KEY);
 
-      alert("Dokumen berhasil diproses!");
-      onSubmitSuccess?.();
+      // Success message berdasarkan action dan role
+      let successMessage = "✅ Dokumen berhasil diproses!";
+
+      if (userDivision === Division.Dalkon) {
+        if (action === "approve") {
+          if (documentStatus === "submitted") {
+            successMessage = "📤 BERHASIL!\\n\\nDokumen telah dikirim ke Engineering untuk review teknis.\\n\\nStatus: submitted → inReviewEngineering";
+          } else if (documentStatus === "approved" || documentStatus === "approvedWithNotes") {
+            successMessage = "📤 BERHASIL!\\n\\nDokumen telah dikirim ke Manager untuk review manajemen.\\n\\nStatus: approved → inReviewManager";
+          } else if (documentStatus === "inReviewManager") {
+            successMessage = "🎉 FINAL APPROVAL BERHASIL!\\n\\nDokumen telah diselesaikan dan disetujui.\\n\\nStatus: inReviewManager → approved (SELESAI)";
+          }
+        } else if (action === "returnForCorrection") {
+          successMessage = "🔄 DOKUMEN DIKEMBALIKAN\\n\\nDokumen telah dikembalikan ke Vendor untuk perbaikan.\\n\\nVendor akan melakukan resubmit setelah revisi.";
+        } else if (action === "reject") {
+          successMessage = "❌ DOKUMEN DITOLAK\\n\\nDokumen telah ditolak secara permanen.\\n\\nStatus: submitted → rejected";
+        }
+      } else if (userDivision === Division.Engineer) {
+        if (action === "approve") {
+          successMessage = "✅ APPROVE BERHASIL!\\n\\nDokumen telah disetujui dan dikembalikan ke Dalkon.\\n\\nStatus: inReviewEngineering → approved";
+        } else if (action === "approveWithNotes") {
+          successMessage = "📝 APPROVE DENGAN CATATAN\\n\\nDokumen disetujui dengan catatan dan dikembalikan ke Dalkon.\\n\\nStatus: inReviewEngineering → approvedWithNotes";
+        } else if (action === "returnForCorrection") {
+          successMessage = "🔄 DOKUMEN DIKEMBALIKAN\\n\\nDokumen dikembalikan ke Vendor untuk perbaikan.\\n\\nStatus: inReviewEngineering → returnForCorrection";
+        }
+      } else if (userDivision === Division.Manager) {
+        if (action === "approve") {
+          successMessage = "✅ APPROVE BERHASIL!\\n\\nDokumen telah disetujui. Menunggu final approval dari Dalkon.\\n\\nStatus: tetap di inReviewManager";
+        } else if (action === "returnForCorrection") {
+          successMessage = "🔄 DOKUMEN DIKEMBALIKAN\\n\\nDokumen dikembalikan ke Vendor untuk perbaikan.\\n\\nStatus: inReviewManager → returnForCorrection";
+        }
+      }
+
+      alert(successMessage);
+      
+      // Reset form
+      setAction("");
+      setNotes("");
+      
+      // Callback dan close
+      if (onSubmitSuccess) {
+        onSubmitSuccess();
+      }
       onClose();
     } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.message || "Gagal mengirim dokumen.");
+      console.error("❌ Error submitting document:", err);
+      
+      const errorMessage = err.response?.data?.message || err.message || "Gagal mengirim dokumen.";
+      alert(`❌ ERROR!\\n\\n${errorMessage}\\n\\nSilakan coba lagi atau hubungi administrator.`);
     } finally {
       setIsLoading(false);
     }
@@ -1011,24 +1073,78 @@ export default function DocumentReviewPage({
                     <SelectValue placeholder="Pilih aksi..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="approve">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                        <span className="text-sm">Approve</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="approveWithNotes">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-                        <span className="text-sm">Approve with Notes</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="returnForCorrection">
-                      <div className="flex items-center gap-2">
-                        <Send className="w-3.5 h-3.5 text-orange-600" />
-                        <span className="text-sm">Return for Correction</span>
-                      </div>
-                    </SelectItem>
+                    {/* Dalkon: approve (forward), returnForCorrection, reject (only at submitted) */}
+                    {userDivision === Division.Dalkon && (
+                      <>
+                        <SelectItem value="approve">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                            <span className="text-sm">
+                              {documentStatus === "submitted" && "Forward ke Engineer"}
+                              {(documentStatus === "approved" || documentStatus === "approvedWithNotes") && "Forward ke Manager"}
+                              {documentStatus === "inReviewManager" && "Final Approval"}
+                              {!documentStatus && "Approve"}
+                            </span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="returnForCorrection">
+                          <div className="flex items-center gap-2">
+                            <Send className="w-3.5 h-3.5 text-orange-600" />
+                            <span className="text-sm">Return for Correction</span>
+                          </div>
+                        </SelectItem>
+                        {documentStatus === "submitted" && (
+                          <SelectItem value="reject">
+                            <div className="flex items-center gap-2">
+                              <X className="w-3.5 h-3.5 text-red-600" />
+                              <span className="text-sm">Reject</span>
+                            </div>
+                          </SelectItem>
+                        )}
+                      </>
+                    )}
+
+                    {/* Engineer: approve, approveWithNotes, returnForCorrection */}
+                    {userDivision === Division.Engineer && (
+                      <>
+                        <SelectItem value="approve">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                            <span className="text-sm">Approve</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="approveWithNotes">
+                          <div className="flex items-center gap-2">
+                            <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                            <span className="text-sm">Approve with Notes</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="returnForCorrection">
+                          <div className="flex items-center gap-2">
+                            <Send className="w-3.5 h-3.5 text-orange-600" />
+                            <span className="text-sm">Return for Correction</span>
+                          </div>
+                        </SelectItem>
+                      </>
+                    )}
+
+                    {/* Manager: approve, returnForCorrection */}
+                    {userDivision === Division.Manager && (
+                      <>
+                        <SelectItem value="approve">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                            <span className="text-sm">Approve</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="returnForCorrection">
+                          <div className="flex items-center gap-2">
+                            <Send className="w-3.5 h-3.5 text-orange-600" />
+                            <span className="text-sm">Return for Correction</span>
+                          </div>
+                        </SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
 
@@ -1041,6 +1157,7 @@ export default function DocumentReviewPage({
                       "bg-blue-600 hover:bg-blue-700",
                     action === "returnForCorrection" &&
                       "bg-orange-600 hover:bg-orange-700",
+                    action === "reject" && "bg-red-600 hover:bg-red-700",
                     (!action || (needsNotes && !notes.trim())) &&
                       "bg-gray-400 cursor-not-allowed"
                   )}
@@ -1054,9 +1171,18 @@ export default function DocumentReviewPage({
                   ) : (
                     <Send className="w-4 h-4 mr-2" />
                   )}
-                  {action === "approve" && "Approve Dokumen"}
+                  {action === "approve" && userDivision === Division.Dalkon && (
+                    <>
+                      {documentStatus === "submitted" && "Forward ke Engineer"}
+                      {(documentStatus === "approved" || documentStatus === "approvedWithNotes") && "Forward ke Manager"}
+                      {documentStatus === "inReviewManager" && "Final Approval"}
+                      {!documentStatus && "Approve"}
+                    </>
+                  )}
+                  {action === "approve" && userDivision !== Division.Dalkon && "Approve Dokumen"}
                   {action === "approveWithNotes" && "Approve + Notes"}
                   {action === "returnForCorrection" && "Return Revisi"}
+                  {action === "reject" && "Reject Dokumen"}
                   {!action && "Pilih Aksi Dulu"}
                 </Button>
               </div>
@@ -1067,6 +1193,8 @@ export default function DocumentReviewPage({
                     placeholder={
                       action === "approveWithNotes"
                         ? "Tulis catatan tambahan..."
+                        : action === "reject"
+                        ? "Jelaskan alasan penolakan..."
                         : "Jelaskan revisi yang diperlukan..."
                     }
                     value={notes}

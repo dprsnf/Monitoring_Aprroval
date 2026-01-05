@@ -49,23 +49,76 @@ export default function DalkonDocumentCard({
   const isEngineer = currentUser?.division === Division.Engineer;
   const isManager = currentUser?.division === Division.Manager;
 
+  // ✅ Cek apakah dokumen sudah final approved
+  // Final approved = Status approved + reviewed by Dalkon (setelah Manager approve)
+  // Flow: Manager approve → inReviewConsultant → Dalkon final approve → approved
+  const isFinalApproved = 
+    doc.status === Status.approved && 
+    doc.reviewedBy?.division === Division.Dalkon;
+
+  // ⚠️ SAFETY CHECK: Jika status approved tapi tidak punya reviewedBy data,
+  // anggap sebagai final approved untuk mencegah tampil tombol yang salah
+  const isApprovedWithoutReviewer = 
+    doc.status === Status.approved && !doc.reviewedBy;
+
+  // 🔍 DEBUG: Log untuk membantu troubleshoot
+  if (doc.status === Status.approved) {
+    console.log('📄 Approved Document Debug:', {
+      name: doc.name,
+      status: doc.status,
+      reviewedBy: doc.reviewedBy,
+      isFinalApproved,
+      isApprovedWithoutReviewer,
+    });
+  }
+
+  // ✅ FIXED: Dalkon dapat forward di 4 tahap:
+  // 1. submitted → Engineer
+  // 2. approved (dari Engineer) → Manager  
+  // 3. inReviewConsultant (Manager sudah approve) → Final approval
+  // KECUALI: Jika sudah final approved atau tidak ada data reviewer, jangan tampilkan tombol
   const canForward =
-    (isDalkon &&
-      (doc.status === Status.submitted ||
-        doc.status === Status.approved ||
-        doc.status === Status.approvedWithNotes)) ||
-    (isEngineer && doc.status === Status.inReviewEngineering) ||
-    (isManager && doc.status === Status.inReviewManager);
+    !isFinalApproved && 
+    !isApprovedWithoutReviewer && (
+      (isDalkon &&
+        (doc.status === Status.submitted ||         // Kirim ke Engineer
+         doc.status === Status.approved ||          // Kirim ke Manager
+         doc.status === Status.approvedWithNotes || // Kirim ke Manager (with notes)
+         doc.status === Status.inReviewConsultant)) || // ✅ TAMBAH: Final approval (dari Manager)
+      (isEngineer && doc.status === Status.inReviewEngineering) ||
+      (isManager && doc.status === Status.inReviewManager)
+    );
 
   const canReturnToVendor =
+    !isFinalApproved && 
+    !isApprovedWithoutReviewer && // ✅ Safety check
     isDalkon &&
     (doc.status === Status.submitted ||
      doc.status === Status.approved ||
-     doc.status === Status.approvedWithNotes);
+     doc.status === Status.approvedWithNotes ||
+     doc.status === Status.inReviewConsultant); // ✅ Dalkon bisa return di semua tahap kecuali yang sudah selesai
 
   const canRequestReturn =
     (isEngineer && doc.status === Status.inReviewEngineering) ||
     (isManager && doc.status === Status.inReviewManager);
+
+  // ✅ Helper function untuk menentukan label tombol
+  const getForwardButtonLabel = () => {
+    if (isDalkon) {
+      if (doc.status === Status.submitted) {
+        return "Kirim ke Engineer";
+      } else if (doc.status === Status.approved || doc.status === Status.approvedWithNotes) {
+        return "Kirim ke Manager";
+      } else if (doc.status === Status.inReviewConsultant) {
+        return "🎉 Final Approval"; // ✅ Manager sudah approve, Dalkon final
+      }
+    } else if (isEngineer) {
+      return "Approve";
+    } else if (isManager) {
+      return "Approve";
+    }
+    return "Forward";
+  };
 
   const handleDownload = async () => {
     try {
@@ -92,6 +145,23 @@ export default function DalkonDocumentCard({
             <div className="flex items-center gap-3 mb-3">
               <h3 className="text-xl font-bold text-gray-900">{doc.name}</h3>
               <Badge variant="secondary">{doc.status}</Badge>
+              
+              {/* 🔍 DEBUG BADGE: Tampilkan info reviewer untuk approved documents */}
+              {doc.status === Status.approved && (
+                <Badge 
+                  variant="outline" 
+                  className={
+                    isFinalApproved 
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-300" 
+                      : "bg-amber-50 text-amber-700 border-amber-300"
+                  }
+                >
+                  {doc.reviewedBy 
+                    ? `✓ By ${doc.reviewedBy.division}` 
+                    : "⚠️ No Reviewer Data"}
+                </Badge>
+              )}
+              
               {doc.returnRequestedBy &&
                 doc.status === Status.returnForCorrection && (
                   <Badge variant="destructive">
@@ -125,72 +195,96 @@ export default function DalkonDocumentCard({
           </div>
 
           <div className="flex flex-col gap-3 min-w-[220px]">
-            <Button
-              onClick={handleOpenPage}
-              className="bg-[#125d72] hover:bg-[#14a2ba]"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Preview & Coret
-            </Button>
+            {/* ✅ Jika final approved, hanya tampilkan Preview & Download */}
+            {isFinalApproved ? (
+              <>
+                <Button
+                  onClick={handleOpenPage}
+                  className="bg-[#125d72] hover:bg-[#14a2ba]"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Preview
+                </Button>
 
-            <Button onClick={handleDownload} variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Download
-            </Button>
+                <Button onClick={handleDownload} variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
 
-            <Button onClick={() => onDetailClick(doc)} variant="outline">
-              <FileText className="w-4 h-4 mr-2" />
-              Detail
-            </Button>
+                <Button onClick={() => onDetailClick(doc)} variant="outline">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Detail
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* Tombol lengkap untuk dokumen yang masih dalam proses */}
+                <Button
+                  onClick={handleOpenPage}
+                  className="bg-[#125d72] hover:bg-[#14a2ba]"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Preview & Coret
+                </Button>
 
-            {canForward && (
-              <Button
-                onClick={() => onReviewClick(doc)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Send className="w-4 h-4 mr-2" />
-                {isDalkon
-                  ? doc.status === Status.submitted
-                    ? "Kirim ke Engineer"
-                    : "Kirim ke Manager"
-                  : isEngineer
-                  ? "Approve"
-                  : "Final Approve"}
-              </Button>
-            )}
+                <Button onClick={handleDownload} variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
 
-            {canReturnToVendor && (
-              <Button
-                onClick={() => onReturnClick(doc)}
-                className="bg-orange-600 hover:bg-orange-700"
-              >
-                <Undo2 className="w-4 h-4 mr-2" />
-                {doc.status === Status.submitted
-                  ? "Return ke Vendor"
-                  : "Batalkan Approval"}
-              </Button>
-            )}
+                <Button onClick={() => onDetailClick(doc)} variant="outline">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Detail
+                </Button>
 
-            {canRequestReturn && (
-              <Button
-                onClick={() => onReturnClick(doc)}
-                variant="outline"
-                className="border-orange-600 text-orange-600 hover:bg-orange-50"
-              >
-                <Undo2 className="w-4 h-4 mr-2" />
-                Minta Dikembalikan
-              </Button>
-            )}
+                {canForward && (
+                  <Button
+                    onClick={() => onReviewClick(doc)}
+                    className={
+                      isDalkon && doc.status === Status.inReviewConsultant
+                        ? "bg-emerald-600 hover:bg-emerald-700" // ✅ Final approval = emerald
+                        : "bg-green-600 hover:bg-green-700"    // Regular approve = green
+                    }
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    {getForwardButtonLabel()}
+                  </Button>
+                )}
 
-            {onRejectClick && isDalkon && doc.status === Status.submitted && (
-              <Button
-                onClick={() => onRejectClick(doc)}
-                variant="outline"
-                className="border-red-600 text-red-600 hover:bg-red-50"
-              >
-                <XCircle className="w-4 h-4 mr-2" />
-                Reject Permanen
-              </Button>
+                {canReturnToVendor && (
+                  <Button
+                    onClick={() => onReturnClick(doc)}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    <Undo2 className="w-4 h-4 mr-2" />
+                    {doc.status === Status.submitted
+                      ? "Return ke Vendor"
+                      : "Batalkan & Return"}
+                  </Button>
+                )}
+
+                {canRequestReturn && (
+                  <Button
+                    onClick={() => onReturnClick(doc)}
+                    variant="outline"
+                    className="border-orange-600 text-orange-600 hover:bg-orange-50"
+                  >
+                    <Undo2 className="w-4 h-4 mr-2" />
+                    Minta Dikembalikan
+                  </Button>
+                )}
+
+                {onRejectClick && isDalkon && doc.status === Status.submitted && (
+                  <Button
+                    onClick={() => onRejectClick(doc)}
+                    variant="outline"
+                    className="border-red-600 text-red-600 hover:bg-red-50"
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Reject Permanen
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>

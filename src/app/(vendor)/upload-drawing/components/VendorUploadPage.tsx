@@ -166,6 +166,32 @@ export default function VendorUploadPage({
     }
   };
 
+  // Helper untuk extract notes dari dokumen
+  const getDocumentNotes = (doc: any) => {
+    // Priority 1: Notes dari approval terakhir
+    if (doc.approvals?.[0]?.notes) {
+      return {
+        notes: doc.approvals[0].notes,
+        reviewer: doc.reviewedBy?.name || 'Reviewer',
+        division: doc.reviewedBy?.division || 'Unknown',
+      };
+    }
+
+    // Priority 2: Parse dari progress array (log terakhir yang relevan)
+    if (doc.progress && Array.isArray(doc.progress)) {
+      const lastProgress = doc.progress[doc.progress.length - 1];
+      if (lastProgress && lastProgress !== 'Resubmitted by vendor') {
+        return {
+          notes: lastProgress,
+          reviewer: doc.reviewedBy?.name || 'Reviewer',
+          division: doc.reviewedBy?.division || 'Unknown',
+        };
+      }
+    }
+
+    return null;
+  };
+
   const handleResubmitAnnotated = async (docId: number, file: File) => {
     setResubmitUploadingId(docId);
     const form = new FormData();
@@ -214,22 +240,78 @@ export default function VendorUploadPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-8 space-y-6">
-                {resubmitDocs.map((doc) => (
+                {resubmitDocs.map((doc) => {
+                  const documentNotes = getDocumentNotes(doc);
+                  const statusBadge = doc.status === 'returnForCorrection' 
+                    ? 'PERLU REVISI' 
+                    : 'DISETUJUI DENGAN CATATAN';
+                  const statusColor = doc.status === 'returnForCorrection'
+                    ? 'bg-red-100 text-red-800 border-red-300'
+                    : 'bg-yellow-100 text-yellow-800 border-yellow-300';
+
+                  return (
                   <div
                     key={doc.id}
                     className="bg-white rounded-2xl shadow-xl border p-6 flex flex-col lg:flex-row justify-between items-start gap-6"
                   >
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-900">{doc.name}</h3>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-2xl font-bold text-gray-900">{doc.name}</h3>
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${statusColor}`}>
+                          {statusBadge}
+                        </span>
+                      </div>
                       <p className="text-gray-600 mt-1">
                         Versi {doc.latestVersion} • {doc.documentType?.toUpperCase()}
                         {doc.contract?.contractNumber && ` • ${doc.contract.contractNumber}`}
                       </p>
-                      {doc.approvals?.[0]?.notes && (
-                        <div className="mt-4 p-5 bg-red-50 border-2 border-red-300 rounded-xl">
-                          <p className="font-bold text-red-800">Catatan Reviewer:</p>
-                          <p className="text-red-700 mt-2">{doc.approvals[0].notes}</p>
+                      
+                      {documentNotes && (
+                        <div className={`mt-4 p-5 rounded-xl border-2 ${
+                          doc.status === 'returnForCorrection' 
+                            ? 'bg-red-50 border-red-300' 
+                            : 'bg-yellow-50 border-yellow-300'
+                        }`}>
+                          <div className="flex items-start gap-2 mb-2">
+                            <AlertCircle className={`w-5 h-5 mt-0.5 ${
+                              doc.status === 'returnForCorrection' ? 'text-red-600' : 'text-yellow-600'
+                            }`} />
+                            <div className="flex-1">
+                              <p className={`font-bold ${
+                                doc.status === 'returnForCorrection' ? 'text-red-800' : 'text-yellow-800'
+                              }`}>
+                                Catatan dari Peninjau:
+                              </p>
+                              {documentNotes.reviewer && (
+                                <p className="text-sm text-gray-600 mt-1">
+                                  oleh: {documentNotes.reviewer}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <p className={`mt-2 ${
+                            doc.status === 'returnForCorrection' ? 'text-red-700' : 'text-yellow-700'
+                          }`}>
+                            {documentNotes.notes}
+                          </p>
                         </div>
+                      )}
+
+                      {/* Tampilkan history progress jika ada */}
+                      {doc.progress && doc.progress.length > 1 && (
+                        <details className="mt-4">
+                          <summary className="cursor-pointer text-sm font-semibold text-gray-600 hover:text-gray-800">
+                            Lihat Riwayat Review ({doc.progress.length} aktivitas)
+                          </summary>
+                          <div className="mt-2 space-y-2 pl-4 border-l-2 border-gray-200">
+                            {doc.progress.slice().reverse().map((log: string, idx: number) => (
+                              <div key={idx} className="text-sm text-gray-600">
+                                <span className="inline-block w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+                                {log}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
                       )}
                     </div>
 
@@ -306,7 +388,8 @@ export default function VendorUploadPage({
                       </label>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
           )}
