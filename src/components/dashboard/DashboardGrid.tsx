@@ -69,7 +69,7 @@ export default function DashboardGrid() {
     ],
     Dalkon: [
       {
-        title: "Upload Management",
+        title: "Upload Dalkon",
         description: "Kelola dan review submission",
         icon: FileText,
         href: "/documents/review-dalkon",
@@ -95,7 +95,7 @@ export default function DashboardGrid() {
     ],
     Manager: [
       {
-        title: "Upload Management",
+        title: "Upload Manager",
         description: "Kelola dan review submission",
         icon: FileText,
         href: "/documents/review-manager",

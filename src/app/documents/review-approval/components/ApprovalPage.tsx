@@ -368,8 +368,6 @@ export default function ApprovalPage() {
         title={
           selectedDocument
             ? `Review: ${selectedDocument.name}`
-            : selectedVendor
-            ? `Dokumen: ${selectedVendor.projectTitle}`
             : "Technical Approval Dashboard"
         }
         onBack={

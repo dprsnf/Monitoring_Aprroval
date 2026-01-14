@@ -47,7 +47,7 @@ export default function Header({
   const showBackButton = onBack !== undefined || backHref !== undefined;
 
   return (
-    <header className="bg-gradient-to-r from-[#125d72] to-[#14a2ba] shadow-lg">
+    <header className="sticky top-0 bg-linear-to-r from-[#125d72] to-[#14a2ba] shadow-lg z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">

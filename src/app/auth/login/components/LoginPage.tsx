@@ -180,14 +180,14 @@ export default function LoginPage() {
               </div>
 
               {/* Forgot Password */}
-              <div className="text-right">
+              {/* <div className="text-right">
                 <Link
                   href="/forgot-password"
                   className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors"
                 >
                   Lupa password?
                 </Link>
-              </div>
+              </div> */}
 
               {/* Submit */}
               <Button

@@ -18,6 +18,7 @@ const ROUTES = {
     "/upload-drawing",
     "/approval-history",
     "/approval-progress",
+    "/documents/review/",
   ],
   Engineering: [
     "/dashboard",
@@ -42,7 +43,7 @@ const ROUTES = {
   ],
 };
 
-const PUBLIC_ROUTES = ["/auth/login", "/auth/register"];
+const PUBLIC_ROUTES = ["/auth/login", "/auth/registration", "/auth/employee-registration"];
 const PROTECTED_ROUTES = [
   "/dashboard",
   "/documents",

@@ -134,7 +134,7 @@ export default function VendorRegistrationPage() {
           <div className="text-center">
             <div className="flex justify-center mb-4">
               <Image
-                src="/Logo_PLN.svg"
+                src="/logo_pln.png"
                 alt="PLN Logo"
                 height={90}
                 width={140}

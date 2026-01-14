@@ -339,7 +339,7 @@ export default function DocumentReviewPage() {
   return (
     <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
       <Header
-        title="Upload Drawing"
+        title="Dalkon Dokumen"
         currentUser={authUser}
         backHref="/dashboard"
         onLogout={logout}

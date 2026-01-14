@@ -278,7 +278,7 @@ export default function DalkonDocumentCard({
                   <Button
                     onClick={() => onRejectClick(doc)}
                     variant="outline"
-                    className="border-red-600 text-red-600 hover:bg-red-50"
+                    className="border-red-600 text-red-600 hover:bg-red-50 hover:text-red-600"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
                     Reject Permanen

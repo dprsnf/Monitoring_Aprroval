@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Moved from experimental in Next.js 16
+  serverExternalPackages: [],
   async headers() {
     return [
       {
@@ -34,16 +36,6 @@ const nextConfig: NextConfig = {
         },
       ],
     };
-  },
-  webpack: (config) => {
-    // Ignore pdfjs worker warnings
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      canvas: false,
-      encoding: false,
-    };
-
-    return config;
   },
 };
 
