@@ -55,6 +55,18 @@ if (typeof window !== "undefined") {
   if (pdfjs.GlobalWorkerOptions.workerSrc !== workerSrc) {
     pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
   }
+  
+  // ✅ PERBAIKAN: Add error handler for Worker errors
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('error', (event) => {
+      // Suppress DataCloneError dari PDF Worker (tidak critical)
+      if (event.message && event.message.includes('DataCloneError')) {
+        console.warn('PDF Worker DataCloneError (suppressed):', event.message);
+        event.preventDefault();
+        return false;
+      }
+    });
+  }
 }
 
 interface Point {
@@ -84,7 +96,7 @@ interface DocumentReviewPageProps {
   userDivision?: Division;
   onSubmitSuccess?: () => void;
   initialAction?: "approve" | "approveWithNotes" | "returnForCorrection" | null;
-  documentStatus?: string; // Status dokumen saat ini untuk menentukan action yang tersedia
+  status?: string; // Status dokumen saat ini untuk menentukan action yang tersedia
 }
 
 export default function DocumentReviewPage({
@@ -94,7 +106,7 @@ export default function DocumentReviewPage({
   userDivision,
   onSubmitSuccess,
   initialAction = null,
-  documentStatus,
+  status,
 }: DocumentReviewPageProps) {
   const STORAGE_KEY = `annotations_${documentId}`;
   
@@ -171,9 +183,18 @@ export default function DocumentReviewPage({
 
   const loadFile = useCallback(async (retryCount = 0) => {
     if (!documentId) return;
+    
+    // ✅ PERBAIKAN: Cleanup old state sebelum load baru
     setIsLoading(true);
     setIsPdfReady(false);
     setError(null);
+    setPdfFile(null); // Clear old PDF file to release ArrayBuffer
+    
+    // Cleanup old image URL if exists
+    if (imageUrl) {
+      URL.revokeObjectURL(imageUrl);
+      setImageUrl(null);
+    }
 
     try {
       const { data } = await api.get(`/documents/${documentId}/file`, {
@@ -181,31 +202,35 @@ export default function DocumentReviewPage({
         timeout: 120000, // 2 minutes for large PDFs
       });
 
+      // ✅ PERBAIKAN: Clone ArrayBuffer untuk avoid detached error
       const uint8Array = new Uint8Array(data);
-      const first4Bytes = Array.from(uint8Array.slice(0, 4)).map(b => String.fromCharCode(b)).join('');
+      const clonedArray = new Uint8Array(uint8Array.length);
+      clonedArray.set(uint8Array);
+      
+      const first4Bytes = Array.from(clonedArray.slice(0, 4)).map(b => String.fromCharCode(b)).join('');
       console.log("File loaded successfully", { 
-        byteLength: uint8Array.byteLength,
+        byteLength: clonedArray.byteLength,
         first4Bytes
       });
       
       // ✅ Detect file type from magic bytes
       if (first4Bytes === '%PDF') {
-        // PDF file
+        // PDF file - gunakan cloned array
         setFileType('pdf');
-        setPdfFile({ data: uint8Array });
+        setPdfFile({ data: clonedArray });
         setIsPdfReady(true);
-      } else if (uint8Array[0] === 0xFF && uint8Array[1] === 0xD8) {
+      } else if (clonedArray[0] === 0xFF && clonedArray[1] === 0xD8) {
         // JPG file (starts with FFD8)
         setFileType('image');
-        const blob = new Blob([uint8Array], { type: 'image/jpeg' });
+        const blob = new Blob([clonedArray], { type: 'image/jpeg' });
         const url = URL.createObjectURL(blob);
         setImageUrl(url);
         setIsPdfReady(true);
         setNumPages(1); // Image has only 1 "page"
-      } else if (uint8Array[0] === 0x89 && uint8Array[1] === 0x50 && uint8Array[2] === 0x4E && uint8Array[3] === 0x47) {
+      } else if (clonedArray[0] === 0x89 && clonedArray[1] === 0x50 && clonedArray[2] === 0x4E && clonedArray[3] === 0x47) {
         // PNG file (starts with 89504E47)
         setFileType('image');
-        const blob = new Blob([uint8Array], { type: 'image/png' });
+        const blob = new Blob([clonedArray], { type: 'image/png' });
         const url = URL.createObjectURL(blob);
         setImageUrl(url);
         setIsPdfReady(true);
@@ -231,18 +256,32 @@ export default function DocumentReviewPage({
       setIsPdfReady(false);
       setIsLoading(false);
     }
-  }, [documentId]);
+  }, [documentId, imageUrl]);
 
   useEffect(() => {
     loadFile();
     
-    // Cleanup image URL on unmount
+    // ✅ Cleanup on unmount
+    return () => {
+      // Cleanup image URL
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+      
+      // ✅ PERBAIKAN: Clear PDF state untuk release ArrayBuffer
+      setPdfFile(null);
+      setIsPdfReady(false);
+    };
+  }, [loadFile]);
+
+  // ✅ PERBAIKAN: Separate effect untuk cleanup imageUrl saat berubah
+  useEffect(() => {
     return () => {
       if (imageUrl) {
         URL.revokeObjectURL(imageUrl);
       }
     };
-  }, [loadFile]);
+  }, [imageUrl]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -524,15 +563,26 @@ export default function DocumentReviewPage({
   const generateAnnotatedPDF = async (): Promise<File | null> => {
     // ✅ Validasi PDF sudah ready dan loaded
     if (!isPdfReady || !pdfFile || !pdfFile.data) {
-      console.error("❌ PDF not ready or not loaded", { isPdfReady, pdfFile: !!pdfFile, hasData: !!pdfFile?.data });
-      alert("PDF belum selesai dimuat. Tunggu sebentar dan coba lagi.");
+      console.error("❌ PDF not ready or not loaded", { 
+        isPdfReady, 
+        pdfFile: !!pdfFile, 
+        hasData: !!pdfFile?.data,
+        fileType,
+        documentId
+      });
+      alert("⚠️ PDF belum selesai dimuat.\n\nTunggu hingga PDF muncul di layar, lalu coba lagi.");
       return null;
     }
 
     // Validate PDF data (Uint8Array uses byteLength)
     if (pdfFile.data.byteLength === 0) {
-      console.error("❌ PDF data is empty", { byteLength: pdfFile.data.byteLength });
-      alert("Data PDF kosong. Coba refresh halaman.");
+      console.error("❌ PDF data is empty", { 
+        byteLength: pdfFile.data.byteLength,
+        fileType,
+        documentId,
+        isPdfReady
+      });
+      alert("⚠️ Data PDF kosong!\n\nSOLUSI:\n1. Klik tombol SAVE dulu\n2. Tunggu sampai PDF ter-reload (3-5 detik)\n3. Baru klik Submit Revisi");
       return null;
     }
 
@@ -631,6 +681,12 @@ export default function DocumentReviewPage({
       return;
     }
 
+    // Validasi untuk vendor: dokumen harus dalam status returnForCorrection
+    if (userDivision === Division.Vendor && status !== "returnForCorrection") {
+      alert("⚠️ Vendor hanya dapat menyimpan anotasi pada dokumen yang dikembalikan untuk koreksi.");
+      return;
+    }
+
     setIsSaving(true);
     try {
       // Kirim annotations sebagai JSON - backend yang merge ke PDF
@@ -639,20 +695,62 @@ export default function DocumentReviewPage({
         documentName: documentName,
       };
 
-      await api.patch(`/documents/${documentId}/save-annotations`, payload, {
+      console.log("💾 Saving annotations...", { documentId, annotationsCount: annotations.length, userDivision });
+
+      const response = await api.patch(`/documents/${documentId}/save-annotations`, payload, {
         headers: {
           "Content-Type": "application/json",
         },
+        timeout: 60000, // 1 minute timeout for annotation merging
       });
+
+      console.log("✅ Annotations saved successfully:", response.data);
 
       // Clear localStorage after successful save
       localStorage.removeItem(STORAGE_KEY);
       
-      alert("Perubahan berhasil disimpan ke server! Anda bisa lanjut edit atau submit.");
+      // ✅ Clear annotations state (PDF di server sudah ter-merge)
+      setAnnotations([]);
+      
+      alert("✅ Perubahan berhasil disimpan!\n\nPDF sudah ter-update di server.\nAnda bisa lanjut edit atau submit revisi.");
+      
+      // ✅ PERBAIKAN: Reload PDF dari server agar state fresh untuk submit
+      console.log("🔄 Reloading PDF after save...");
+      
+      // ✅ Clear old PDF state dulu sebelum reload
+      setPdfFile(null);
+      setIsPdfReady(false);
+      
+      // ✅ Set delay untuk memberi waktu backend finish merge dan cleanup
+      setTimeout(async () => {
+        try {
+          await loadFile();
+          console.log("✅ PDF reloaded successfully");
+        } catch (reloadErr) {
+          console.error("⚠️ Warning: PDF reload failed:", reloadErr);
+          // Non-critical error, user bisa refresh manual
+        }
+      }, 2000); // 2 second delay untuk memastikan backend selesai
       
     } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.message || "Gagal menyimpan perubahan ke server.");
+      console.error("❌ Error saving annotations:", err);
+      console.error("Error details:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message
+      });
+      
+      let errorMsg = "Gagal menyimpan perubahan ke server.";
+      
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.response?.status === 404) {
+        errorMsg = "File tidak ditemukan di server. Backend mungkin sedang memproses file sebelumnya.\n\nSolusi:\n1. Tunggu beberapa detik\n2. Refresh halaman (F5)\n3. Buka dokumen ini lagi\n4. Coba save ulang";
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
+      
+      alert(`ERROR SAVE!\n\n${errorMsg}\n\nTroubleshooting:\n- Pastikan koneksi internet stabil\n- Coba refresh halaman dan ulangi\n- Jika error 'File not found', tunggu beberapa detik lalu refresh\n- Hubungi admin jika masalah berlanjut`);
     } finally {
       setIsSaving(false);
     }
@@ -671,7 +769,7 @@ export default function DocumentReviewPage({
 
     // ✅ Validasi status sesuai division
     if (userDivision === Division.Engineer) {
-      if (documentStatus !== "inReviewEngineering" && documentStatus !== "submitted") {
+      if (status !== "inReviewEngineering" && status !== "submitted") {
         alert(
           `Status tidak valid, Dokumen ini tidak dapat direview oleh Engineer.`
         );
@@ -680,7 +778,7 @@ export default function DocumentReviewPage({
     }
 
     if (userDivision === Division.Manager) {
-      if (documentStatus !== "inReviewManager") {
+      if (status !== "inReviewManager") {
         alert(
           `Status tidak valid, Dokumen ini tidak dapat direview oleh Manager.`
         );
@@ -689,7 +787,7 @@ export default function DocumentReviewPage({
     }
 
     // Konfirmasi untuk action penting
-    if (action === "reject" || (action === "approve" && documentStatus === "inReviewManager")) {
+    if (action === "reject" || (action === "approve" && status === "inReviewManager")) {
       const confirmText = action === "reject" 
         ? "PERHATIAN!\\n\\nAnda akan REJECT dokumen ini.\\nDokumen yang di-reject tidak dapat diresubmit.\\n\\nLanjutkan?"
         : "FINAL APPROVAL\\n\\nAnda akan melakukan final approval.\\nSetelah ini dokumen akan selesai diproses.\\n\\nLanjutkan?";
@@ -730,7 +828,7 @@ export default function DocumentReviewPage({
         role,
         hasNotes: !!notes.trim(),
         hasAnnotations: annotations.length > 0,
-        documentStatus
+        status
       });
 
       await api.patch(`/documents/${documentId}/${role}-review`, formData, {
@@ -745,15 +843,15 @@ export default function DocumentReviewPage({
 
       if (userDivision === Division.Dalkon) {
         if (action === "approve") {
-          if (documentStatus === "submitted") {
+          if (status === "submitted") {
             successMessage = "📤 BERHASIL!\\n\\nDokumen telah dikirim ke Engineering untuk review teknis.\\n\\nStatus: submitted → inReviewEngineering";
-          } else if (documentStatus === "approved" || documentStatus === "approvedWithNotes") {
+          } else if (status === "approved" || status === "approvedWithNotes") {
             successMessage = "📤 BERHASIL!\\n\\nDokumen telah dikirim ke Manager untuk review manajemen.\\n\\nStatus: approved → inReviewManager";
-          } else if (documentStatus === "inReviewManager") {
+          } else if (status === "inReviewManager") {
             successMessage = "🎉 FINAL APPROVAL BERHASIL!\\n\\nDokumen telah diselesaikan dan disetujui.\\n\\nStatus: inReviewManager → approved (SELESAI)";
           }
         } else if (action === "returnForCorrection") {
-          successMessage = "🔄 DOKUMEN DIKEMBALIKAN\\n\\nDokumen telah dikembalikan ke Vendor untuk perbaikan.\\n\\nVendor akan melakukan resubmit setelah revisi.";
+          successMessage = "🔄 DOKUMEN DIKEMBALIKAN\\n\\nDokumen telah dikembalikan ke Dalkon untuk review.\\n\\nDalkon akan menentukan langkah selanjutnya.";
         } else if (action === "reject") {
           successMessage = "❌ DOKUMEN DITOLAK\\n\\nDokumen telah ditolak secara permanen.\\n\\nStatus: submitted → rejected";
         }
@@ -763,13 +861,13 @@ export default function DocumentReviewPage({
         } else if (action === "approveWithNotes") {
           successMessage = "📝 APPROVE DENGAN CATATAN\\n\\nDokumen disetujui dengan catatan dan dikembalikan ke Dalkon.\\n\\nStatus: inReviewEngineering → approvedWithNotes";
         } else if (action === "returnForCorrection") {
-          successMessage = "🔄 DOKUMEN DIKEMBALIKAN\\n\\nDokumen dikembalikan ke Vendor untuk perbaikan.\\n\\nStatus: inReviewEngineering → returnForCorrection";
+          successMessage = "🔄 DOKUMEN DIKEMBALIKAN\\n\\nDokumen dikembalikan ke Dalkon untuk review.\\n\\nDalkon akan menentukan apakah perlu dikembalikan ke Vendor.";
         }
       } else if (userDivision === Division.Manager) {
         if (action === "approve") {
           successMessage = "✅ APPROVE BERHASIL!\\n\\nDokumen telah disetujui. Menunggu final approval dari Dalkon.\\n\\nStatus: tetap di inReviewManager";
         } else if (action === "returnForCorrection") {
-          successMessage = "🔄 DOKUMEN DIKEMBALIKAN\\n\\nDokumen dikembalikan ke Vendor untuk perbaikan.\\n\\nStatus: inReviewManager → returnForCorrection";
+          successMessage = "🔄 DOKUMEN DIKEMBALIKAN\\n\\nDokumen dikembalikan ke Dalkon untuk review.\\n\\nDalkon akan menentukan apakah perlu dikembalikan ke Vendor.";
         }
       }
 
@@ -795,43 +893,55 @@ export default function DocumentReviewPage({
   };
 
   const handleSubmitRevision = async () => {
-    // ✅ Validasi anotasi
-    if (annotations.length === 0) {
-      alert("Tidak ada perubahan untuk dikirim.");
+    // ✅ Validasi status dokumen
+    if (status !== "returnForCorrection") {
+      alert("⚠️ Dokumen tidak dalam status 'Return for Correction'.\n\nHanya dokumen yang dikembalikan yang dapat diresubmit.");
       return;
+    }
+
+    // ✅ PERBAIKAN: Tidak perlu validasi annotations karena sudah di-save sebelumnya
+    // User workflow: Save dulu → baru Submit
+    // Jika ada annotations yang belum di-save, prompt user untuk save dulu
+    if (annotations.length > 0) {
+      const confirmSaveFirst = confirm(
+        "⚠️ PERINGATAN\n\nAnda memiliki anotasi yang belum tersimpan!\n\n" +
+        "Klik OK untuk menyimpan dulu, atau Cancel untuk submit tanpa anotasi terbaru."
+      );
+      
+      if (confirmSaveFirst) {
+        await handleSave();
+        // Jika save gagal (annotations masih ada), jangan lanjut submit
+        if (annotations.length > 0) {
+          return;
+        }
+      }
     }
 
     // ✅ Validasi PDF sudah dimuat
-    if (!isPdfReady || !pdfFile) {
-      alert("PDF belum selesai dimuat. Tunggu sebentar dan coba lagi.");
+    if (!isPdfReady) {
+      alert("⚠️ PDF belum selesai dimuat.\n\nTunggu hingga PDF muncul di layar, lalu coba lagi.");
       return;
     }
 
+    const confirmSubmit = confirm(
+      "📤 SUBMIT REVISI\n\n" +
+      "Dokumen akan diresubmit ke Dalkon untuk review ulang.\n\n" +
+      "Lanjutkan?"
+    );
+    
+    if (!confirmSubmit) return;
+
     setIsLoading(true);
     try {
-      console.log("📝 Generating annotated PDF for vendor revision...");
-      const fileToSend = await generateAnnotatedPDF();
+      console.log("📤 Submitting vendor revision...", { documentId, status });
       
-      // ✅ Early return jika PDF generation gagal
-      if (!fileToSend) {
-        console.error("❌ Failed to generate PDF file");
-        setIsLoading(false); // Reset loading state
-        return; // Alert sudah ditampilkan di generateAnnotatedPDF
-      }
-
-      console.log("📤 Uploading annotated PDF...", { fileSize: fileToSend.size });
-      const formData = new FormData();
-      formData.append("file", fileToSend);
-      formData.append("action", "submit_revision");
-
-      await api.patch(`/documents/${documentId}/vendor-review`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        timeout: 300000, // 5 minutes for PDF generation and upload
+      // ✅ PERBAIKAN: Gunakan endpoint resubmit yang sudah ada
+      // Tidak perlu kirim file karena file sudah ter-merge dari handleSave
+      await api.patch(`/documents/${documentId}/resubmit-simple`, {}, {
+        timeout: 60000, // 1 minute
       });
 
-      alert("Revisi berhasil dikirim!");
+      alert("✅ REVISI BERHASIL DIKIRIM!\n\nDokumen telah diresubmit ke Dalkon.\nStatus: returnForCorrection → submitted");
       
       // Clear localStorage after successful submit
       localStorage.removeItem(STORAGE_KEY);
@@ -839,9 +949,9 @@ export default function DocumentReviewPage({
       onSubmitSuccess?.();
       onClose();
     } catch (err: any) {
-      console.error("Error mengirim revisi vendor:", err);
+      console.error("❌ Error submitting vendor revision:", err);
       const errorMessage = err.response?.data?.message || err.message || "Gagal mengirim revisi";
-      alert(`ERROR!\n\n${errorMessage}\n\nSilakan coba lagi.`);
+      alert(`ERROR SUBMIT!\n\n${errorMessage}\n\nTroubleshooting:\n- Pastikan Anda sudah SAVE terlebih dahulu\n- Refresh halaman dan coba lagi\n- Hubungi admin jika masalah berlanjut`);
     } finally {
       setIsLoading(false);
     }
@@ -865,28 +975,28 @@ export default function DocumentReviewPage({
         "approvedWithNotes",
         "inReviewConsultant",
         "inReviewManager"
-      ].includes(documentStatus || "");
+      ].includes(status || "");
     }
     
     // Engineer can only review inReviewEngineering or submitted (edge case)
     if (userDivision === Division.Engineer) {
-      return documentStatus === "inReviewEngineering" || documentStatus === "submitted";
+      return status === "inReviewEngineering" || status === "submitted";
     }
     
     // Manager can only review inReviewManager
     if (userDivision === Division.Manager) {
-      return documentStatus === "inReviewManager";
+      return status === "inReviewManager";
     }
     
     return false;
-  }, [isReviewer, userDivision, documentStatus]);
+  }, [isReviewer, userDivision, status]);
 
   // Debug logging
   useEffect(() => {
     console.log("🔍 DocumentReviewPage Debug:", {
       userDivision,
       isReviewer,
-      documentStatus,
+      status,
       documentId,
       canReview: canReviewDocument(),
       isDalkon: userDivision === Division.Dalkon,
@@ -894,7 +1004,7 @@ export default function DocumentReviewPage({
       isManager: userDivision === Division.Manager,
       isVendor: userDivision === Division.Vendor,
     });
-  }, [userDivision, isReviewer, documentStatus, documentId, canReviewDocument]);
+  }, [userDivision, isReviewer, status, documentId, canReviewDocument]);
 
   return (
     <div className="fixed inset-0 bg-white flex flex-col z-50">
@@ -917,10 +1027,6 @@ export default function DocumentReviewPage({
               ) : (
                 "Tambahkan anotasi (text/gambar bisa di-drag), lalu submit revisi"
               )}
-            </p>
-            {/* Debug info - remove after fixing */}
-            <p className="text-xs text-purple-600 font-mono">
-              👤 {userDivision} | 📄 {documentStatus} | {isReviewer ? '✅ Reviewer' : '❌ Not Reviewer'}
             </p>
           </div>
         </div>
@@ -1097,6 +1203,16 @@ export default function DocumentReviewPage({
           <Document
             file={pdfFile}
             onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={(error) => {
+              console.error("PDF load error:", error);
+              // ✅ PERBAIKAN: Jika DataCloneError, coba reload sekali lagi
+              if (error.message && error.message.includes('detached')) {
+                console.log("🔄 Detected ArrayBuffer detached error, reloading...");
+                setTimeout(() => {
+                  loadFile();
+                }, 500);
+              }
+            }}
             loading={
               <div className="flex h-full items-center justify-center">
                 <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
@@ -1258,10 +1374,10 @@ export default function DocumentReviewPage({
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-3.5 h-3.5 text-green-600" />
                             <span className="text-sm">
-                              {documentStatus === "submitted" && "Forward ke Engineer"}
-                              {(documentStatus === "approved" || documentStatus === "approvedWithNotes") && "Forward ke Manager"}
-                              {documentStatus === "inReviewManager" && "Final Approval"}
-                              {!documentStatus && "Approve"}
+                              {status === "submitted" && "Forward ke Engineer"}
+                              {(status === "approved" || status === "approvedWithNotes") && "Forward ke Manager"}
+                              {status === "inReviewManager" && "Final Approval"}
+                              {!status && "Approve"}
                             </span>
                           </div>
                         </SelectItem>
@@ -1271,7 +1387,7 @@ export default function DocumentReviewPage({
                             <span className="text-sm">Return for Correction</span>
                           </div>
                         </SelectItem>
-                        {documentStatus === "submitted" && (
+                        {status === "submitted" && (
                           <SelectItem value="reject">
                             <div className="flex items-center gap-2">
                               <X className="w-3.5 h-3.5 text-red-600" />
@@ -1351,10 +1467,10 @@ export default function DocumentReviewPage({
                   )}
                   {action === "approve" && userDivision === Division.Dalkon && (
                     <>
-                      {documentStatus === "submitted" && "Forward ke Engineer"}
-                      {(documentStatus === "approved" || documentStatus === "approvedWithNotes") && "Forward ke Manager"}
-                      {documentStatus === "inReviewManager" && "Final Approval"}
-                      {!documentStatus && "Approve"}
+                      {status === "submitted" && "Forward ke Engineer"}
+                      {(status === "approved" || status === "approvedWithNotes") && "Forward ke Manager"}
+                      {status === "inReviewManager" && "Final Approval"}
+                      {!status && "Approve"}
                     </>
                   )}
                   {action === "approve" && userDivision !== Division.Dalkon && "Approve Dokumen"}
@@ -1399,13 +1515,13 @@ export default function DocumentReviewPage({
                   <p className="font-semibold mb-1">Dokumen tidak dapat direview saat ini</p>
                   <p>
                     {userDivision === Division.Engineer && (
-                      <>Status dokumen: <strong>{documentStatus}</strong>. Engineer hanya dapat review dokumen dengan status <strong>inReviewEngineering</strong>.</>
+                      <>Status dokumen: <strong>{status}</strong>. Engineer hanya dapat review dokumen dengan status <strong>inReviewEngineering</strong>.</>
                     )}
                     {userDivision === Division.Manager && (
-                      <>Status dokumen: <strong>{documentStatus}</strong>. Manager hanya dapat review dokumen dengan status <strong>inReviewManager</strong>.</>
+                      <>Status dokumen: <strong>{status}</strong>. Manager hanya dapat review dokumen dengan status <strong>inReviewManager</strong>.</>
                     )}
                     {userDivision === Division.Dalkon && (
-                      <>Status dokumen: <strong>{documentStatus}</strong>. Dokumen belum siap untuk review.</>
+                      <>Status dokumen: <strong>{status}</strong>. Dokumen belum siap untuk review.</>
                     )}
                   </p>
                 </div>

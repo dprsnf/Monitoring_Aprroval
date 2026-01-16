@@ -330,6 +330,7 @@ export default function VendorUploadPage({
                             documentName: doc.name,
                             userDivision: user?.division,
                             initialAction: null,
+                            status: doc.status, // ✅ Include status for better handling
                           };
                           sessionStorage.setItem("documentReviewData", JSON.stringify(data));
                           const encodedId = encodeDocumentId(doc.id);

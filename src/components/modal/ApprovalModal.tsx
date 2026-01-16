@@ -5,7 +5,7 @@ import { ModalProps, ApprovalType} from "@/app/types";
 
 interface ExtendedModalProps extends ModalProps {
     actionType?: "approve" | "approveWithNotes" | "returnForCorrection" | "reject" | "forward" | "finalApproval";
-    documentStatus?: string;
+    status?: string;
 }
 
 export default function ApprovalModal({
@@ -15,7 +15,7 @@ export default function ApprovalModal({
     onClose,
     onSubmit,
     actionType = "forward",
-    documentStatus
+    status
 }: ExtendedModalProps) {
     if (!selectedDocument) return null;
 
@@ -32,9 +32,9 @@ export default function ApprovalModal({
     const getModalConfig = () => {
         switch (actionType) {
             case "approve":
-                // ✅ Cek apakah ini final approval berdasarkan documentStatus
+                // ✅ Cek apakah ini final approval berdasarkan status
                 // Final approval = dokumen sudah di-approve Manager, kembali ke Dalkon untuk final
-                const isFinalApproval = documentStatus === "inReviewConsultant";
+                const isFinalApproval = status === "inReviewConsultant";
                 
                 if (isFinalApproval) {
                     return {
@@ -60,7 +60,7 @@ export default function ApprovalModal({
                     iconColor: "text-green-500",
                     description: "📋 Dokumen akan disetujui dan dilanjutkan ke tahap berikutnya dalam proses review.",
                     notePlaceholder: "Tambahkan catatan approval (opsional)...",
-                    buttonText: documentStatus === "approved" || documentStatus === "approvedWithNotes" 
+                    buttonText: status === "approved" || status === "approvedWithNotes" 
                         ? "Kirim ke Manager" 
                         : "Approve Dokumen",
                     buttonBg: "bg-green-600 hover:bg-green-700",
@@ -199,10 +199,10 @@ export default function ApprovalModal({
                                 <p className="text-gray-600 font-medium">📋 Tipe Dokumen:</p>
                                 <p className="text-gray-900">{selectedDocument.documentType || "Not specified"}</p>
                             </div>
-                            {documentStatus && (
+                            {status && (
                                 <div>
                                     <p className="text-gray-600 font-medium">🔄 Status Saat Ini:</p>
-                                    <p className="text-gray-900">{documentStatus}</p>
+                                    <p className="text-gray-900">{status}</p>
                                 </div>
                             )}
                         </div>

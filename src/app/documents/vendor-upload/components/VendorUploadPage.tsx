@@ -219,17 +219,12 @@ export default function VendorUploadPage() {
   const fetchResubmitDocs = async () => {
     setIsLoadingResubmit(true);
     try {
-      const response = await api.get("/documents");
+      // ✅ PERBAIKAN: Gunakan endpoint khusus vendor pending correction
+      const response = await api.get("/documents/vendor/pending-correction");
       const docs = response.data;
 
-      // Filter hanya dokumen yang bisa di-resubmit
-      const canResubmit = docs.filter(
-        (doc: any) =>
-          ["returnForCorrection", "approvedWithNotes"].includes(doc.status) &&
-          doc.submittedById === user?.id
-      );
-
-      setResubmitDocs(canResubmit);
+      // Dokumen sudah difilter di backend (status = returnForCorrection)
+      setResubmitDocs(docs);
     } catch (error) {
       console.error("Failed to fetch resubmit docs", error);
     } finally {

@@ -539,7 +539,7 @@ export default function DocumentReviewPage() {
           actionType={
             selectedDocument.status === Status.submitted ? "forward" : "approve"
           }
-          documentStatus={selectedDocument.status}
+          status={selectedDocument.status}
         />
       )}
 
