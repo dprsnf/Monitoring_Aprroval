@@ -163,6 +163,7 @@ export default function DocumentReviewPage({
   const [action, setAction] = useState<string>(initialAction || "");
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isReloadingAfterSave, setIsReloadingAfterSave] = useState(false);
 
   const needsNotes =
     action === "approveWithNotes" || action === "returnForCorrection" || action === "reject";
@@ -675,19 +676,21 @@ export default function DocumentReviewPage({
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<boolean> => {
     if (annotations.length === 0) {
       alert("Tidak ada perubahan untuk disimpan.");
-      return;
+      return false;
     }
 
     // Validasi untuk vendor: dokumen harus dalam status returnForCorrection
     if (userDivision === Division.Vendor && status !== "returnForCorrection") {
       alert("⚠️ Vendor hanya dapat menyimpan anotasi pada dokumen yang dikembalikan untuk koreksi.");
-      return;
+      return false;
     }
 
     setIsSaving(true);
+    setIsReloadingAfterSave(true);
+    
     try {
       // Kirim annotations sebagai JSON - backend yang merge ke PDF
       const payload = {
@@ -712,7 +715,7 @@ export default function DocumentReviewPage({
       // ✅ Clear annotations state (PDF di server sudah ter-merge)
       setAnnotations([]);
       
-      alert("✅ Perubahan berhasil disimpan!\n\nPDF sudah ter-update di server.\nAnda bisa lanjut edit atau submit revisi.");
+      alert("✅ Perubahan berhasil disimpan!\n\nPDF sedang di-reload dari server...\nTunggu beberapa detik.");
       
       // ✅ PERBAIKAN: Reload PDF dari server agar state fresh untuk submit
       console.log("🔄 Reloading PDF after save...");
@@ -721,16 +724,21 @@ export default function DocumentReviewPage({
       setPdfFile(null);
       setIsPdfReady(false);
       
-      // ✅ Set delay untuk memberi waktu backend finish merge dan cleanup
-      setTimeout(async () => {
-        try {
-          await loadFile();
-          console.log("✅ PDF reloaded successfully");
-        } catch (reloadErr) {
-          console.error("⚠️ Warning: PDF reload failed:", reloadErr);
-          // Non-critical error, user bisa refresh manual
-        }
-      }, 2000); // 2 second delay untuk memastikan backend selesai
+      // ✅ Return promise yang resolve setelah reload selesai
+      return new Promise((resolve) => {
+        setTimeout(async () => {
+          try {
+            await loadFile();
+            console.log("✅ PDF reloaded successfully");
+            setIsReloadingAfterSave(false);
+            resolve(true);
+          } catch (reloadErr) {
+            console.error("⚠️ Warning: PDF reload failed:", reloadErr);
+            setIsReloadingAfterSave(false);
+            resolve(false);
+          }
+        }, 3000); // 3 second delay untuk memastikan backend selesai
+      });
       
     } catch (err: any) {
       console.error("❌ Error saving annotations:", err);
@@ -751,8 +759,10 @@ export default function DocumentReviewPage({
       }
       
       alert(`ERROR SAVE!\n\n${errorMsg}\n\nTroubleshooting:\n- Pastikan koneksi internet stabil\n- Coba refresh halaman dan ulangi\n- Jika error 'File not found', tunggu beberapa detik lalu refresh\n- Hubungi admin jika masalah berlanjut`);
+      return false;
     } finally {
       setIsSaving(false);
+      setIsReloadingAfterSave(false);
     }
   };
 
@@ -899,27 +909,35 @@ export default function DocumentReviewPage({
       return;
     }
 
-    // ✅ PERBAIKAN: Tidak perlu validasi annotations karena sudah di-save sebelumnya
-    // User workflow: Save dulu → baru Submit
-    // Jika ada annotations yang belum di-save, prompt user untuk save dulu
+    // ✅ Cek apakah ada unsaved annotations
     if (annotations.length > 0) {
       const confirmSaveFirst = confirm(
-        "⚠️ PERINGATAN\n\nAnda memiliki anotasi yang belum tersimpan!\n\n" +
-        "Klik OK untuk menyimpan dulu, atau Cancel untuk submit tanpa anotasi terbaru."
+        "⚠️ ANOTASI BELUM TERSIMPAN!\n\n" +
+        "Anda memiliki anotasi yang belum di-SAVE.\n" +
+        "Anotasi harus di-SAVE terlebih dahulu sebelum submit.\n\n" +
+        "Klik OK untuk SAVE otomatis dan lanjut submit.\n" +
+        "Klik Cancel untuk batalkan."
       );
       
-      if (confirmSaveFirst) {
-        await handleSave();
-        // Jika save gagal (annotations masih ada), jangan lanjut submit
-        if (annotations.length > 0) {
-          return;
-        }
+      if (!confirmSaveFirst) {
+        return;
       }
+      
+      // ✅ PERBAIKAN: Auto-save dan tunggu hingga reload selesai
+      console.log("💾 Auto-saving before submit...");
+      const saveSuccess = await handleSave();
+      
+      if (!saveSuccess) {
+        alert("❌ Gagal menyimpan anotasi!\n\nSilakan coba SAVE manual dulu, tunggu PDF reload, baru submit.");
+        return;
+      }
+      
+      console.log("✅ Auto-save completed, PDF reloaded");
     }
 
-    // ✅ Validasi PDF sudah dimuat
-    if (!isPdfReady) {
-      alert("⚠️ PDF belum selesai dimuat.\n\nTunggu hingga PDF muncul di layar, lalu coba lagi.");
+    // ✅ Validasi PDF sudah dimuat dan tidak sedang reload
+    if (!isPdfReady || isReloadingAfterSave) {
+      alert("⚠️ PDF sedang di-reload setelah save.\n\nTunggu beberapa detik hingga reload selesai, lalu coba lagi.");
       return;
     }
 
@@ -935,9 +953,18 @@ export default function DocumentReviewPage({
     try {
       console.log("📤 Submitting vendor revision...", { documentId, status });
       
-      // ✅ PERBAIKAN: Gunakan endpoint resubmit yang sudah ada
-      // Tidak perlu kirim file karena file sudah ter-merge dari handleSave
-      await api.patch(`/documents/${documentId}/resubmit-simple`, {}, {
+      // ✅ PERBAIKAN: Gunakan endpoint /resubmit dengan FormData kosong
+      // File sudah ter-merge dari saveAnnotations, jadi tidak perlu upload lagi
+      // Backend akan pakai file yang sudah ada di database
+      const formData = new FormData();
+      // Kirim empty blob sebagai file dummy (agar FileInterceptor tidak error)
+      const emptyFile = new Blob([], { type: 'application/pdf' });
+      formData.append('file', emptyFile, 'dummy.pdf');
+
+      await api.patch(`/documents/${documentId}/resubmit`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
         timeout: 60000, // 1 minute
       });
 
@@ -950,8 +977,37 @@ export default function DocumentReviewPage({
       onClose();
     } catch (err: any) {
       console.error("❌ Error submitting vendor revision:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Gagal mengirim revisi";
-      alert(`ERROR SUBMIT!\n\n${errorMessage}\n\nTroubleshooting:\n- Pastikan Anda sudah SAVE terlebih dahulu\n- Refresh halaman dan coba lagi\n- Hubungi admin jika masalah berlanjut`);
+      console.error("Error details:", {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message,
+        code: err.code
+      });
+      
+      // ✅ PERBAIKAN: Pesan error yang lebih akurat dan helpful
+      let errorMessage = "Gagal mengirim revisi ke server.";
+      let troubleshooting = "";
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.status === 404) {
+        errorMessage = "Endpoint tidak ditemukan (404).";
+        troubleshooting = "\n\nKemungkinan:\n- Backend API belum tersedia\n- Hubungi admin untuk update backend";
+      } else if (err.response?.status === 400) {
+        errorMessage = err.response.data?.message || "Bad Request - Data tidak valid";
+        troubleshooting = "\n\nKemungkinan:\n- File dummy tidak diterima backend\n- Status dokumen tidak valid\n- Hubungi admin untuk pengecekan";
+      } else if (err.response?.status === 500) {
+        errorMessage = "Internal Server Error - Backend mengalami masalah";
+        troubleshooting = "\n\nKemungkinan:\n- File PDF corrupt\n- Database error\n- Check backend logs\n- Hubungi admin";
+      } else if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        errorMessage = "Request timeout - Server terlalu lama merespons";
+        troubleshooting = "\n\nSolusi:\n- Pastikan koneksi internet stabil\n- Coba lagi dalam beberapa saat";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      alert(`❌ ERROR SUBMIT REVISI!\n\n${errorMessage}${troubleshooting}\n\n📋 Technical Details:\nStatus: ${err.response?.status || 'N/A'}\nCode: ${err.code || 'N/A'}`);
     } finally {
       setIsLoading(false);
     }
@@ -1530,20 +1586,32 @@ export default function DocumentReviewPage({
           )}
 
           {!isReviewer && userDivision === Division.Vendor && (
-            <div className="flex justify-end">
-              <Button
-                size="default"
-                onClick={handleSubmitRevision}
-                disabled={isLoading || annotations.length === 0}
-                className="h-8 text-sm"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4 mr-2" />
-                )}
-                Submit Revisi
-              </Button>
+            <div className="flex flex-col gap-2">
+              {(isSaving || isReloadingAfterSave) && (
+                <div className="flex items-center justify-end gap-2 text-xs text-blue-600">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>
+                    {isSaving && "Menyimpan anotasi..."}
+                    {isReloadingAfterSave && !isSaving && "Memuat ulang PDF..."}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button
+                  size="default"
+                  onClick={handleSubmitRevision}
+                  disabled={isLoading || isSaving || isReloadingAfterSave}
+                  className="h-8 text-sm"
+                  title={isReloadingAfterSave ? "Tunggu hingga PDF selesai di-reload" : "Submit revisi ke Dalkon"}
+                >
+                  {(isLoading || isSaving || isReloadingAfterSave) ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4 mr-2" />
+                  )}
+                  {isReloadingAfterSave ? "Loading PDF..." : "Submit Revisi"}
+                </Button>
+              </div>
             </div>
           )}
         </div>
