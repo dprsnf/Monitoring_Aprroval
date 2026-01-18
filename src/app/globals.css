@@ -82,3 +82,17 @@
     @apply bg-background text-foreground transition-colors duration-300;
   }
 }
+
+.react-pdf__Page {
+  position: relative !important;
+}
+
+.react-pdf__Page canvas {
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+.react-pdf__Page > div {
+  position: relative !important;
+  z-index: 0 !important;
+}

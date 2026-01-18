@@ -1,0 +1,9 @@
+# Bun configuration file
+[install]
+# Use workspace protocol for local packages
+registry = "https://registry.npmjs.org/"
+ 
+[run]
+# Use bun runtime instead of Node.js
+bun = true
+prefer = "bun"

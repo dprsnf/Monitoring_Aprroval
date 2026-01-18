@@ -9,7 +9,7 @@ interface SubmitSectionProps {
 
 export default function SubmitSection({ canSubmit }: SubmitSectionProps) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-lg">
       <div>
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 drop-shadow-sm">Ready to Submit?</h3>
         <p className="text-gray-700 text-sm">

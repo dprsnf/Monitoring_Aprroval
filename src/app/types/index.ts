@@ -1,10 +1,8 @@
-import { JSX } from "react";
-
-export enum Role {
+export enum Division {
   Manager = "Manager",
   Dalkon = "Dalkon",
   Engineer = "Engineer",
-  Vendor = "Vendor"
+  Vendor = "Vendor",
 }
 
 export enum Status {
@@ -16,25 +14,37 @@ export enum Status {
   approvedWithNotes = "approvedWithNotes",
   returnForCorrection = "returnForCorrection",
   rejected = "rejected",
-  overdue = "overdue"
+  overdue = "overdue",
 }
 
 export enum ApprovalType {
   protection = "protection",
-  civil = "civil"
+  civil = "civil",
 }
 
 export interface User {
   id?: number;
   email: string;
   name: string;
-  role: Role;
+  division: Division;
 }
 
 export interface Contract {
-  id: number;
+  id: string;
   contractNumber: string;
   contractDate: string;
+}
+
+export interface DocumentVersion {
+  fileUrl: string;
+  id: string;
+  filePath: string;
+  version: number;
+  createdAt: string;
+  uploadedBy: {
+    id: number;
+    name: string;
+  };
 }
 
 export interface Document {
@@ -45,17 +55,20 @@ export interface Document {
   overallDeadline?: string;
   documentType?: ApprovalType;
   contract?: Contract;
-  contractId?: number;
+  contractId?: string;
   submittedBy: User;
   submittedById: number;
   reviewedBy?: User;
   reviewedById?: number;
   createdAt: string;
   updatedAt: string;
-  progress?: string;
-  version: number;
   remarks?: string;
+  returnRequestedBy?: Division;
   approvals: Approval[];
+
+  progress: string[]; 
+  latestVersion: number; 
+  versions: DocumentVersion[]; 
 }
 
 export interface Approval {
@@ -71,8 +84,18 @@ export interface Approval {
   updatedAt: string;
 }
 
-export interface ApiErrorResponse{
-    message: string;
+export interface VendorData {
+  user: User;
+  projectTitle: string; // Akan diisi dengan nomor kontrak atau info lain
+  category: string;
+  priority: string;
+  reviewDeadline: string;
+  description: string;
+  documents: Document[];
+}
+
+export interface ApiErrorResponse {
+  message: string;
 }
 
 export interface FormErrors {
@@ -82,20 +105,25 @@ export interface FormErrors {
   confirmPassword?: string;
 }
 
-
-// Props untuk komponen yang menggunakan Document
-export interface DocumentListProps {
-  documents: Document[];
-  onDetailClick: (document: Document) => void;
-  onApproveClick: (document: Document) => void;
-  onRejectClick: (document: Document) => void;
-  getStatusBadge: (status: Status) => JSX.Element | null;
+export interface TechnicalApprovalModalProps {
+  selectedDocument: Document | null;
+  notes: string;
+  setNotes: (notes: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+  modalType: "approve" | "approveWithNotes" | "reject"; // reject akan jadi 'return'
 }
 
 export interface ModalProps {
-  selectedDocument: Document | null;
+  selectedDocument: Document;
   managementNotes: string;
   setManagementNotes: (notes: string) => void;
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: () => void; 
+}
+
+export interface DetailModalProps {
+  selectedDocument: Document | null;
+  isLoading: boolean;
+  onClose: () => void;
 }
