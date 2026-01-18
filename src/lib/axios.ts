@@ -22,7 +22,6 @@ const api = axios.create({
 // Add a request interceptor to include the access token
 api.interceptors.request.use(
   (config) => {
-    // 1. Kalau di browser → ambil dari cookie seperti biasa
     if (typeof window !== "undefined") {
       const cookies = document.cookie.split(";").reduce((acc, c) => {
         const [key, val] = c.trim().split("=");
@@ -34,8 +33,13 @@ api.interceptors.request.use(
       if (token) config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // 2. Kalau di server → token akan di-inject manual dari cookies() di page.tsx
-    //    (lihat kode page.tsx di bawah)
+    // ✅ Jangan hapus Content-Type - biarkan browser/axios handle
+    if (config.data instanceof FormData) {
+      console.log("🔍 [Axios] FormData detected");
+      console.log("🔍 [Axios] URL:", config.url);
+      console.log("🔍 [Axios] Method:", config.method);
+      // JANGAN delete Content-Type - biarkan axios set otomatis dengan boundary
+    }
 
     return config;
   },

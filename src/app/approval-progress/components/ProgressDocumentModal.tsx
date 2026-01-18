@@ -47,7 +47,7 @@ export default function ProgressDocumentModal({
         </DialogHeader>
 
         <div className="space-y-4 sm:space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 sm:p-4 bg-linear-to-r from-gray-50 to-gray-100 rounded-xl">
             <div className="space-y-3">
               <h4 className="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
                 <FileText className="w-4 h-4 mr-2 text-[#14a2ba]" />
@@ -55,23 +55,23 @@ export default function ProgressDocumentModal({
               </h4>
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[60px]">Name:</span>
+                  <span className="font-medium text-gray-700 min-w-15">Name:</span>
                   <span className="text-gray-900 break-all">{document.fileName}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[60px]">Type:</span>
+                  <span className="font-medium text-gray-700 min-w-15">Type:</span>
                   <span className="text-gray-900">{document.fileType}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[60px]">Size:</span>
+                  <span className="font-medium text-gray-700 min-w-15">Size:</span>
                   <span className="text-gray-900">{document.fileSize}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[60px]">Category:</span>
+                  <span className="font-medium text-gray-700 min-w-15">Category:</span>
                   <span className="text-gray-900">{document.category}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[60px]">Priority:</span>
+                  <span className="font-medium text-gray-700 min-w-15">Priority:</span>
                   {getPriorityBadge(document.priority)}
                 </div>
               </div>
@@ -83,13 +83,13 @@ export default function ProgressDocumentModal({
               </h4>
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[80px]">Uploaded:</span>
+                  <span className="font-medium text-gray-700 min-w-20">Uploaded:</span>
                   <span className="text-gray-900">
                     {new Date(document.uploadDate).toLocaleString("id-ID")}
                   </span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[80px]">Status:</span>
+                  <span className="font-medium text-gray-700 min-w-20">Status:</span>
                   <Badge
                     className={`${
                       document.status === "on_hold"
@@ -101,7 +101,7 @@ export default function ProgressDocumentModal({
                   </Badge>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[80px]">Progress:</span>
+                  <span className="font-medium text-gray-700 min-w-20">Progress:</span>
                   <div className="flex items-center gap-2 flex-1">
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
                       <div
@@ -126,7 +126,7 @@ export default function ProgressDocumentModal({
             <h4 className="text-sm sm:text-base font-semibold text-gray-900">
               Description
             </h4>
-            <p className="text-xs sm:text-sm text-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 sm:p-4 rounded-lg border border-blue-100 leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 p-3 sm:p-4 rounded-lg border border-blue-100 leading-relaxed">
               {document.description}
             </p>
           </div>
@@ -139,7 +139,7 @@ export default function ProgressDocumentModal({
             <div className="space-y-3">
               {document.progressSteps.map((step, index) => (
                 <div key={step.step} className="flex items-start gap-3 sm:gap-4">
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     <div
                       className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
                         step.status === "completed"
@@ -226,7 +226,7 @@ export default function ProgressDocumentModal({
           )}
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
-            <Button className="flex-1 bg-gradient-to-r from-[#14a2ba] to-[#125d72] hover:from-[#125d72] hover:to-[#14a2ba] text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm">
+            <Button className="flex-1 bg-linear-to-r from-[#14a2ba] to-[#125d72] hover:from-[#125d72] hover:to-[#14a2ba] text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm">
               <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Download Document
             </Button>

@@ -46,7 +46,7 @@ export default function DashboardCard({
       </div>
 
       {/* Hover overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#14a2ba]/5 to-[#efe62f]/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-linear-to-br from-[#14a2ba]/5 to-[#efe62f]/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
     </Link>
   )
 }

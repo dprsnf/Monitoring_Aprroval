@@ -151,7 +151,7 @@ export default function ApprovalModal({
     return (
         <div className="fixed inset-0 backdrop-blur-xs bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
             <div className="bg-white rounded-lg sm:rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
-                <div className={`bg-gradient-to-r ${config.bgColor} text-white p-3 sm:p-4 md:p-6 rounded-t-lg sm:rounded-t-xl`}>
+                <div className={`bg-linear-to-r ${config.bgColor} text-white p-3 sm:p-4 md:p-6 rounded-t-lg sm:rounded-t-xl`}>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="bg-white/20 p-2 rounded-lg">
                             {config.icon}

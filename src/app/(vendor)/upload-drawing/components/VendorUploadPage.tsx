@@ -102,6 +102,7 @@ export default function VendorUploadPage({
       form.append("name", formData.projectTitle);
       form.append("documentType", formData.category);
       form.append("contractNumber", formData.noContract || "");
+      form.append("contractDate", formData.contractDate || "");
 
       try {
         await api.post("/documents/submit", form, {

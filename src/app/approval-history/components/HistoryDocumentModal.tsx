@@ -26,7 +26,7 @@ export default function HistoryDocumentModal({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 sm:space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 sm:p-4 bg-linear-to-r from-gray-50 to-gray-100 rounded-xl">
             <div className="space-y-3">
               <h4 className="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
                 <FileText className="w-4 h-4 mr-2 text-[#14a2ba]" />
@@ -34,23 +34,23 @@ export default function HistoryDocumentModal({
               </h4>
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[60px]">Name:</span>
+                  <span className="font-medium text-gray-700 min-w-15">Name:</span>
                   <span className="text-gray-900 break-all">{document.fileName}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[60px]">Type:</span>
+                  <span className="font-medium text-gray-700 min-w-15">Type:</span>
                   <span className="text-gray-900">{document.fileType}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[60px]">Size:</span>
+                  <span className="font-medium text-gray-700 min-w-15">Size:</span>
                   <span className="text-gray-900">{document.fileSize}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[60px]">Category:</span>
+                  <span className="font-medium text-gray-700 min-w-15">Category:</span>
                   <span className="text-gray-900">{document.category}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[60px]">Priority:</span>
+                  <span className="font-medium text-gray-700 min-w-15">Priority:</span>
                   {getPriorityBadge(document.priority)}
                 </div>
               </div>
@@ -62,22 +62,22 @@ export default function HistoryDocumentModal({
               </h4>
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[80px]">Uploaded:</span>
+                  <span className="font-medium text-gray-700 min-w-20">Uploaded:</span>
                   <span className="text-gray-900">{new Date(document.uploadDate).toLocaleString('id-ID')}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[80px]">Status:</span>
+                  <span className="font-medium text-gray-700 min-w-20">Status:</span>
                   {getStatusBadge(document.status)}
                 </div>
                 {document.reviewDate && (
                   <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                    <span className="font-medium text-gray-700 min-w-[80px]">Reviewed:</span>
+                    <span className="font-medium text-gray-700 min-w-20">Reviewed:</span>
                     <span className="text-gray-900">{new Date(document.reviewDate).toLocaleString('id-ID')}</span>
                   </div>
                 )}
                 {document.reviewedBy && (
                   <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                    <span className="font-medium text-gray-700 min-w-[80px]">By:</span>
+                    <span className="font-medium text-gray-700 min-w-20">By:</span>
                     <span className="text-gray-900">{document.reviewedBy}</span>
                   </div>
                 )}
@@ -87,7 +87,7 @@ export default function HistoryDocumentModal({
 
           <div className="space-y-3">
             <h4 className="text-sm sm:text-base font-semibold text-gray-900">Description</h4>
-            <p className="text-xs sm:text-sm text-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 sm:p-4 rounded-lg border border-blue-100 leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 p-3 sm:p-4 rounded-lg border border-blue-100 leading-relaxed">
               {document.description}
             </p>
           </div>
@@ -95,14 +95,14 @@ export default function HistoryDocumentModal({
           {document.reviewNotes && (
             <div className="space-y-3">
               <h4 className="text-sm sm:text-base font-semibold text-gray-900">Review Notes</h4>
-              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-3 sm:p-4 rounded-lg border border-yellow-100">
+              <div className="bg-linear-to-r from-yellow-50 to-orange-50 p-3 sm:p-4 rounded-lg border border-yellow-100">
                 <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">{document.reviewNotes}</p>
               </div>
             </div>
           )}
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
-            <Button className="flex-1 bg-gradient-to-r from-[#14a2ba] to-[#125d72] hover:from-[#125d72] hover:to-[#14a2ba] text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm">
+            <Button className="flex-1 bg-linear-to-r from-[#14a2ba] to-[#125d72] hover:from-[#125d72] hover:to-[#14a2ba] text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm">
               <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Download Document
             </Button>

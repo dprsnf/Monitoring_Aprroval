@@ -33,7 +33,7 @@ export default function HistoryVendorModal({
         </DialogHeader>
         <div className="space-y-4 sm:space-y-6">
           {/* Vendor Info */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 sm:p-4 bg-linear-to-r from-gray-50 to-gray-100 rounded-xl">
             <div className="space-y-3">
               <h4 className="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
                 <Building className="w-4 h-4 mr-2 text-[#14a2ba]" />
@@ -41,23 +41,23 @@ export default function HistoryVendorModal({
               </h4>
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[80px]">Project:</span>
-                  <span className="text-gray-900 break-words">{vendor.projectTitle}</span>
+                  <span className="font-medium text-gray-700 min-w-20">Project:</span>
+                  <span className="text-gray-900 wrap-break-words">{vendor.projectTitle}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[80px]">Vendor:</span>
-                  <span className="text-gray-900 break-words">{vendor.vendorName}</span>
+                  <span className="font-medium text-gray-700 min-w-20">Vendor:</span>
+                  <span className="text-gray-900 wrap-break-words">{vendor.vendorName}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[80px]">Company:</span>
-                  <span className="text-gray-900 break-words">{vendor.company}</span>
+                  <span className="font-medium text-gray-700 min-w-20">Company:</span>
+                  <span className="text-gray-900 wrap-break-words">{vendor.company}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[80px]">Category:</span>
+                  <span className="font-medium text-gray-700 min-w-20">Category:</span>
                   <span className="text-gray-900">{vendor.category}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[80px]">Priority:</span>
+                  <span className="font-medium text-gray-700 min-w-20">Priority:</span>
                   {getPriorityBadge(vendor.priority)}
                 </div>
               </div>
@@ -93,7 +93,7 @@ export default function HistoryVendorModal({
               <FileText className="w-4 h-4 mr-2 text-[#14a2ba]" />
               Project Description
             </h4>
-            <p className="text-xs sm:text-sm text-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 sm:p-4 rounded-lg border border-blue-100 leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 p-3 sm:p-4 rounded-lg border border-blue-100 leading-relaxed">
               {vendor.description}
             </p>
           </div>
@@ -109,9 +109,9 @@ export default function HistoryVendorModal({
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex items-start gap-3">
-                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-[#14a2ba] flex-shrink-0 mt-0.5" />
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-[#14a2ba] shrink-0 mt-0.5" />
                         <div className="min-w-0 flex-1">
-                          <h5 className="text-xs sm:text-sm font-medium text-gray-900 break-words">{doc.fileName}</h5>
+                          <h5 className="text-xs sm:text-sm font-medium text-gray-900 wrap-break-words">{doc.fileName}</h5>
                           <p className="text-xs text-gray-600 mt-1 line-clamp-2">{doc.description}</p>
                         </div>
                       </div>
@@ -125,7 +125,7 @@ export default function HistoryVendorModal({
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-row sm:flex-col items-center gap-2 flex-shrink-0">
+                    <div className="flex flex-row sm:flex-col items-center gap-2 shrink-0">
                       {getStatusBadge(doc.status)}
                       <Button
                         size="sm"
@@ -138,7 +138,7 @@ export default function HistoryVendorModal({
                     </div>
                   </div>
                   {doc.reviewNotes && (
-                    <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+                    <div className="mt-3 p-3 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
                       <p className="text-xs sm:text-sm font-medium text-gray-900 mb-1">Review Notes:</p>
                       <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">{doc.reviewNotes}</p>
                       {doc.reviewedBy && (

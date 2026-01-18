@@ -35,7 +35,7 @@ export default function FileReviewList({
             Review dan preview file yang sudah diupload. Pastikan semua file sudah benar sebelum melanjutkan.
           </p>
         </div>
-        <Button
+        {/* <Button
           type="button"
           variant="outline"
           onClick={onBackToUpload}
@@ -44,14 +44,14 @@ export default function FileReviewList({
           <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
           <span className="hidden sm:inline">Upload More Files</span>
           <span className="sm:hidden">Upload</span>
-        </Button>
+        </Button> */}
       </div>
 
       <div className="space-y-3 sm:space-y-4">
         {files.map((file, index) => (
           <div
             key={file.id}
-            className="bg-gradient-to-r from-white to-blue-50 border border-blue-200 rounded-xl p-4 sm:p-6 shadow-md"
+            className="bg-linear-to-r from-white to-blue-50 border border-blue-200 rounded-xl p-4 sm:p-6 shadow-md"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3 sm:gap-4 flex-1">
@@ -105,7 +105,7 @@ export default function FileReviewList({
         ))}
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 bg-gradient-to-r from-white/80 to-blue-50/80 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 bg-linear-to-r from-white/80 to-blue-50/80 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
         <div>
           <h4 className="font-semibold text-gray-900 mb-1 drop-shadow-sm text-sm sm:text-base">
             {files.length} file(s) ready untuk submit

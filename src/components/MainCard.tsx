@@ -18,7 +18,7 @@ const dashboardItems: DashboardItem[] = [
     description: "Melakukan Upload dokumen gambar",
     icon: Upload,
     href: "/vendor-upload",
-    color: "bg-gradient-to-br from-[#14a2ba] to-[#125d72]",
+    color: "bg-linear-to-br from-[#14a2ba] to-[#125d72]",
     iconColor: "text-white"
   },
   {
@@ -26,7 +26,7 @@ const dashboardItems: DashboardItem[] = [
     description: "Melakukan persetujuan gambar",
     icon: CheckCircle,
     href: "/approval",
-    color: "bg-gradient-to-br from-[#efe62f] to-[#f4d03f]",
+    color: "bg-linear-to-br from-[#efe62f] to-[#f4d03f]",
     iconColor: "text-[#125d72]"
   },
   {
@@ -34,7 +34,7 @@ const dashboardItems: DashboardItem[] = [
     description: "Kelola dan review submission",
     icon: FileText,
     href: "/upload-management",
-    color: "bg-gradient-to-br from-emerald-500 to-emerald-600",
+    color: "bg-linear-to-br from-emerald-500 to-emerald-600",
     iconColor: "text-white"
   },
   {
@@ -42,7 +42,7 @@ const dashboardItems: DashboardItem[] = [
     description: "Histori hasil approval drawing",
     icon: History,
     href: "/history",
-    color: "bg-gradient-to-br from-purple-500 to-purple-600",
+    color: "bg-linear-to-br from-purple-500 to-purple-600",
     iconColor: "text-white"
   },
   {
@@ -50,7 +50,7 @@ const dashboardItems: DashboardItem[] = [
     description: "Lihat progres approval drawing",
     icon: Monitor,
     href: "/progress",
-    color: "bg-gradient-to-br from-orange-500 to-orange-600",
+    color: "bg-linear-to-br from-orange-500 to-orange-600",
     iconColor: "text-white"
   },
 ];
@@ -85,7 +85,7 @@ export default function MainCard() {
           </div>
 
           {/* Subtle gradient overlay on hover */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#14a2ba]/5 to-[#efe62f]/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-linear-to-br from-[#14a2ba]/5 to-[#efe62f]/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
         </Link>
       ))}
     </div>

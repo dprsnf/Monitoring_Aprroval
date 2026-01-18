@@ -136,6 +136,21 @@ export default function EngineerDocumentCard({
                       {new Date(document.createdAt).toLocaleDateString("id-ID")}
                     </span>
                   </div>
+                  {document.contract?.contractNumber && (
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[#14a2ba]" />
+                      <span>Contract: {document.contract.contractNumber}</span>
+                    </div>
+                  )}
+                  {document.contract?.contractDate && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-[#14a2ba]" />
+                      <span>
+                        Contract Date:{" "}
+                        {new Date(document.contract.contractDate).toLocaleDateString("id-ID")}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-gray-700 text-sm leading-relaxed mb-3">
@@ -160,7 +175,7 @@ export default function EngineerDocumentCard({
                 )}
               </div>
 
-              <div className="w-full lg:w-auto lg:min-w-[200px]">
+              <div className="w-full lg:w-auto lg:min-w-50">
                 <div className="flex flex-col gap-2">
                   {/* Preview tanpa action (hanya lihat) */}
                   <Button

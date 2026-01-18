@@ -351,7 +351,7 @@ export default function VendorUploadPage() {
                   {uploadedFiles.length > 0 &&
                     // Review button appears if there are files, regardless of status
                     !isUploading && (
-                      <div className="mt-4 sm:mt-6 p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200">
+                      <div className="mt-4 sm:mt-6 p-4 sm:p-6 bg-linear-to-r from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div>
                             <h4 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">
@@ -422,7 +422,7 @@ export default function VendorUploadPage() {
 
           <Card
             ref={submitSectionRef}
-            className="shadow-xl border border-white/30 bg-gradient-to-r from-white/90 to-blue-50/90 backdrop-blur-sm"
+            className="shadow-xl border border-white/30 bg-linear-to-r from-white/90 to-blue-50/90 backdrop-blur-sm"
             data-submit-section
           >
             <CardContent className="p-4 sm:p-6">

@@ -245,7 +245,7 @@ export default function DetailModal({
                 </div>
               </div>
 
-              {selectedDocument.overallDeadline && (
+              {/* {selectedDocument.overallDeadline && (
                 <div className="mt-3 sm:mt-4">
                   <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
                     <Clock className="w-4 h-4" />
@@ -257,7 +257,7 @@ export default function DetailModal({
                     )}
                   </p>
                 </div>
-              )}
+              )} */}
 
               <div className="mt-3 sm:mt-4">
                 <label className="text-xs sm:text-sm font-medium text-gray-600">

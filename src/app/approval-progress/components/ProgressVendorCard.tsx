@@ -56,15 +56,15 @@ export default function ProgressVendorCard({ vendor, onViewDetails }: ProgressVe
               </div>
               <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 text-xs sm:text-sm">
                 <div className="flex items-center text-gray-600">
-                  <Building className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#14a2ba] flex-shrink-0" />
+                  <Building className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#14a2ba] shrink-0" />
                   <span className="truncate">{vendor.vendorName}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
-                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#14a2ba] flex-shrink-0" />
+                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#14a2ba] shrink-0" />
                   <span className="truncate">Due: {new Date(vendor.estimatedCompletion).toLocaleDateString("id-ID")}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
-                  <User className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#14a2ba] flex-shrink-0" />
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#14a2ba] shrink-0" />
                   <span className="truncate">{vendor.assignedReviewer}</span>
                 </div>
               </div>
@@ -85,19 +85,19 @@ export default function ProgressVendorCard({ vendor, onViewDetails }: ProgressVe
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-            <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border">
+            <div className="text-center p-2 sm:p-3 bg-linear-to-br from-gray-50 to-gray-100 rounded-lg border">
               <p className="text-sm sm:text-base lg:text-lg font-bold text-gray-900">{vendor.totalDocuments}</p>
               <p className="text-xs sm:text-sm text-gray-600 truncate">Total</p>
             </div>
-            <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
+            <div className="text-center p-2 sm:p-3 bg-linear-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
               <p className="text-sm sm:text-base lg:text-lg font-bold text-green-700">{vendor.completedDocuments}</p>
               <p className="text-xs sm:text-sm text-gray-600 truncate">Completed</p>
             </div>
-            <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+            <div className="text-center p-2 sm:p-3 bg-linear-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
               <p className="text-sm sm:text-base lg:text-lg font-bold text-blue-700">{vendor.inProgressDocuments}</p>
               <p className="text-xs sm:text-sm text-gray-600 truncate">In Progress</p>
             </div>
-            <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200">
+            <div className="text-center p-2 sm:p-3 bg-linear-to-br from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200">
               <p className="text-sm sm:text-base lg:text-lg font-bold text-yellow-700">{vendor.onHoldDocuments}</p>
               <p className="text-xs sm:text-sm text-gray-600 truncate">On Hold</p>
             </div>
@@ -110,7 +110,7 @@ export default function ProgressVendorCard({ vendor, onViewDetails }: ProgressVe
           <div className="flex flex-col xs:flex-row gap-2 pt-2">
             <Button
               onClick={() => onViewDetails(vendor)}
-              className="flex-1 bg-gradient-to-r from-[#14a2ba] to-[#125d72] hover:from-[#125d72] hover:to-[#14a2ba] text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm"
+              className="flex-1 bg-linear-to-r from-[#14a2ba] to-[#125d72] hover:from-[#125d72] hover:to-[#14a2ba] text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm"
             >
               <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" /> View Progress
             </Button>

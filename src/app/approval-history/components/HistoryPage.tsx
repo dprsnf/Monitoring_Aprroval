@@ -165,7 +165,7 @@ export default function HistoryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
+      <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
         <Header
           currentUser={currentUser}
           title="History & Reports System"
@@ -191,7 +191,7 @@ export default function HistoryPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
+      <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
         <Header
           currentUser={currentUser}
           title="History & Reports System"
@@ -219,7 +219,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
+    <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
       <Header
         currentUser={currentUser}
         title="History & Reports System"
@@ -234,28 +234,28 @@ export default function HistoryPage() {
           <HistoryStatsCard
             icon={Building}
             iconColor="text-[#14a2ba]"
-            bgColor="bg-gradient-to-br from-blue-100 to-blue-50"
+            bgColor="bg-linear-to-br from-blue-100 to-blue-50"
             label="Total Vendors"
             value={totalVendors}
           />
           <HistoryStatsCard
             icon={CheckCircle}
             iconColor="text-green-600"
-            bgColor="bg-gradient-to-br from-green-100 to-green-50"
+            bgColor="bg-linear-to-br from-green-100 to-green-50"
             label="Approved"
             value={approvedVendors}
           />
           <HistoryStatsCard
             icon={XCircle}
             iconColor="text-red-600"
-            bgColor="bg-gradient-to-br from-red-100 to-red-50"
+            bgColor="bg-linear-to-br from-red-100 to-red-50"
             label="Rejected"
             value={rejectedVendors}
           />
           <HistoryStatsCard
             icon={Clock}
             iconColor="text-gray-600"
-            bgColor="bg-gradient-to-br from-gray-100 to-gray-50"
+            bgColor="bg-linear-to-br from-gray-100 to-gray-50"
             label="In Review"
             value={inReviewVendors}
           />

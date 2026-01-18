@@ -80,10 +80,10 @@ export default function TechnicalApprovalModal({
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent
-        className={`sm:max-w-[500px] bg-gradient-to-br from-white ${config.bgColor} border ${config.borderColor} shadow-xl`}
+        className={`sm:max-w-[500px] bg-linear-to-br from-white ${config.bgColor} border ${config.borderColor} shadow-xl`}
       >
         <DialogHeader
-          className={`bg-gradient-to-r ${config.bgColor} rounded-t-lg p-4 -m-6 mb-4`}
+          className={`bg-linear-to-r ${config.bgColor} rounded-t-lg p-4 -m-6 mb-4`}
         >
           <DialogTitle className="flex items-center gap-2">
             <div

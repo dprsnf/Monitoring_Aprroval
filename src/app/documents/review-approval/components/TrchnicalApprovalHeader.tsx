@@ -19,7 +19,7 @@ interface TechnicalApprovalHeaderProps {
 
 export default function TechnicalApprovalHeader({ selectedVendor, onBackToVendors }: TechnicalApprovalHeaderProps) {
     return (
-        <header className="bg-gradient-to-r from-[#125d72] to-[#14a2ba] shadow-lg">
+        <header className="bg-linear-to-r from-[#125d72] to-[#14a2ba] shadow-lg">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
                 <div className="flex items-center justify-between h-14 sm:h-16">
                     <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 min-w-0 flex-1">
@@ -60,7 +60,7 @@ export default function TechnicalApprovalHeader({ selectedVendor, onBackToVendor
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button className="bg-[#efe62f] hover:bg-[#125d72] text-gray-900 hover:text-white transition-all duration-200 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg">
@@ -69,7 +69,7 @@ export default function TechnicalApprovalHeader({ selectedVendor, onBackToVendor
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 sm:w-56 bg-white border border-gray-100 shadow-xl rounded-lg">
-                                <DropdownMenuLabel className="bg-gradient-to-r from-[#125d72]/10 to-[#14a2ba]/10 rounded-t-lg">
+                                <DropdownMenuLabel className="bg-linear-to-r from-[#125d72]/10 to-[#14a2ba]/10 rounded-t-lg">
                                     <div className="py-1">
                                         <p className="text-sm font-semibold text-gray-900">Technical Team</p>
                                         <p className="text-xs text-[#14a2ba]">technical@pln.co.id</p>

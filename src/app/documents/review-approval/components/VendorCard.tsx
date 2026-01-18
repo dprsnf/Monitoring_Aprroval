@@ -72,27 +72,27 @@ export default function VendorCard({
             </p>
           </div>
 
-          <div className="w-full lg:w-auto lg:min-w-[300px]">
+          <div className="w-full lg:w-auto lg:min-w-75">
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 mb-4">
-              <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+              <div className="text-center p-3 bg-linear-to-br from-blue-50 to-blue-100 rounded-lg">
                 <div className="text-lg sm:text-xl font-bold text-blue-600">
                   {counts.total}
                 </div>
                 <div className="text-xs text-blue-700">Total</div>
               </div>
-              <div className="text-center p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg">
+              <div className="text-center p-3 bg-linear-to-br from-yellow-50 to-yellow-100 rounded-lg">
                 <div className="text-lg sm:text-xl font-bold text-yellow-600">
                   {counts.pending}
                 </div>
                 <div className="text-xs text-yellow-700">Pending</div>
               </div>
-              <div className="text-center p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+              <div className="text-center p-3 bg-linear-to-br from-green-50 to-green-100 rounded-lg">
                 <div className="text-lg sm:text-xl font-bold text-green-600">
                   {counts.approved}
                 </div>
                 <div className="text-xs text-green-700">Approved</div>
               </div>
-              <div className="text-center p-3 bg-gradient-to-br from-red-50 to-red-100 rounded-lg">
+              <div className="text-center p-3 bg-linear-to-br from-red-50 to-red-100 rounded-lg">
                 <div className="text-lg sm:text-xl font-bold text-red-600">
                   {counts.rejected}
                 </div>

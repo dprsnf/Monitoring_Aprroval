@@ -51,7 +51,7 @@ export default function DashboardStats() {
               </p>
             </div>
             <div
-              className={`w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br ${s.bg} rounded-full flex items-center justify-center shadow-md`}
+              className={`w-8 h-8 sm:w-10 sm:h-10 bg-linear-to-br ${s.bg} rounded-full flex items-center justify-center shadow-md`}
             >
               <s.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${s.color}`} />
             </div>

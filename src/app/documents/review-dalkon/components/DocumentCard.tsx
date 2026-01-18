@@ -7,6 +7,7 @@ import {
   XCircle,
   Download,
   FileText,
+  Loader2,
 } from "lucide-react";
 import { Document, Division, Status } from "@/app/types";
 import { useState } from "react";
@@ -32,6 +33,7 @@ export default function DalkonDocumentCard({
   onRejectClick,
 }: DalkonDocumentCardProps) {
   const router = useRouter();
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleOpenPage = () => {
     const data = {
@@ -49,19 +51,19 @@ export default function DalkonDocumentCard({
   const isEngineer = currentUser?.division === Division.Engineer;
   const isManager = currentUser?.division === Division.Manager;
 
-  // ✅ Cek apakah dokumen sudah final approved
+  // Cek apakah dokumen sudah final approved
   // Final approved = Status approved + reviewed by Dalkon (setelah Manager approve)
   // Flow: Manager approve → inReviewConsultant → Dalkon final approve → approved
   const isFinalApproved = 
     doc.status === Status.approved && 
     doc.reviewedBy?.division === Division.Dalkon;
 
-  // ⚠️ SAFETY CHECK: Jika status approved tapi tidak punya reviewedBy data,
+  // SAFETY CHECK: Jika status approved tapi tidak punya reviewedBy data,
   // anggap sebagai final approved untuk mencegah tampil tombol yang salah
   const isApprovedWithoutReviewer = 
     doc.status === Status.approved && !doc.reviewedBy;
 
-  // 🔍 DEBUG: Log untuk membantu troubleshoot
+  // DEBUG: Log untuk membantu troubleshoot
   if (doc.status === Status.approved) {
     console.log('📄 Approved Document Debug:', {
       name: doc.name,
@@ -72,7 +74,7 @@ export default function DalkonDocumentCard({
     });
   }
 
-  // ✅ FIXED: Dalkon dapat forward di 4 tahap:
+  // FIXED: Dalkon dapat forward di 4 tahap:
   // 1. submitted → Engineer
   // 2. approved (dari Engineer) → Manager  
   // 3. inReviewConsultant (Manager sudah approve) → Final approval
@@ -121,19 +123,41 @@ export default function DalkonDocumentCard({
   };
 
   const handleDownload = async () => {
+    setIsDownloading(true);
     try {
+      console.log("📥 Downloading document:", doc.id);
+      
       const res = await api.get(`/documents/${doc.id}/file`, {
         responseType: "blob",
+        timeout: 120000, // 2 minutes timeout untuk file besar
       });
+      
       const blob = new Blob([res.data], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${doc.name.replace(/[^a-z0-9]/gi, "_")}.pdf`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (err) {
-      alert("Gagal download file.");
+      
+      console.log("✅ Download successful");
+    } catch (error: any) {
+      console.error("❌ Download error:", error);
+      
+      let errorMessage = "Gagal mendownload file.";
+      if (error.response?.status === 404) {
+        errorMessage = "File tidak ditemukan di server.";
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = "Timeout - File terlalu besar atau koneksi lambat.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`ERROR DOWNLOAD!\n\n${errorMessage}\n\nSilakan coba lagi atau hubungi admin.`);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -177,9 +201,14 @@ export default function DalkonDocumentCard({
               <p>
                 Type: <strong>{doc.documentType || "-"}</strong>
               </p>
-              {doc.contract && (
+              {doc.contract?.contractNumber && (
                 <p>
                   Contract: <strong>{doc.contract.contractNumber}</strong>
+                </p>
+              )}
+              {doc.contract?.contractDate && (
+                <p>
+                  Contract Date: <strong>{new Date(doc.contract.contractDate).toLocaleDateString("id-ID")}</strong>
                 </p>
               )}
               <p className="text-xs mt-2 text-gray-500">
@@ -194,7 +223,7 @@ export default function DalkonDocumentCard({
             )}
           </div>
 
-          <div className="flex flex-col gap-3 min-w-[220px]">
+          <div className="flex flex-col gap-3 min-w-55">
             {/* ✅ Jika final approved, hanya tampilkan Preview & Download */}
             {isFinalApproved ? (
               <>
@@ -206,9 +235,22 @@ export default function DalkonDocumentCard({
                   Preview
                 </Button>
 
-                <Button onClick={handleDownload} variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
+                <Button 
+                  onClick={handleDownload} 
+                  variant="outline"
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </>
+                  )}
                 </Button>
 
                 <Button onClick={() => onDetailClick(doc)} variant="outline">
@@ -227,9 +269,22 @@ export default function DalkonDocumentCard({
                   Preview & Coret
                 </Button>
 
-                <Button onClick={handleDownload} variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
+                <Button 
+                  onClick={handleDownload} 
+                  variant="outline"
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </>
+                  )}
                 </Button>
 
                 <Button onClick={() => onDetailClick(doc)} variant="outline">

@@ -24,6 +24,7 @@ export default function ManagerDocumentCard({ document: doc, onRefresh }: Manage
   const [actionType, setActionType] = useState<"approve" | "returnForCorrection" | null>(null)
   const [notes, setNotes] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const handleOpenPage = () => {
     const data = {
@@ -38,19 +39,41 @@ export default function ManagerDocumentCard({ document: doc, onRefresh }: Manage
   };
 
   const handleDownload = async () => {
+    setIsDownloading(true);
     try {
+      console.log("📥 Downloading document:", doc.id);
+      
       const res = await api.get(`/documents/${doc.id}/file`, {
         responseType: "blob",
+        timeout: 120000, // 2 minutes timeout untuk file besar
       })
+      
       const blob = new Blob([res.data], { type: "application/pdf" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
       a.download = `${doc.name.replace(/[^a-z0-9]/gi, "_")}.pdf`
+      document.body.appendChild(a)
       a.click()
+      document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch (err) {
-      alert("Gagal download file.")
+      
+      console.log("✅ Download successful");
+    } catch (error: any) {
+      console.error("❌ Download error:", error);
+      
+      let errorMessage = "Gagal mendownload file.";
+      if (error.response?.status === 404) {
+        errorMessage = "File tidak ditemukan di server.";
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = "Timeout - File terlalu besar atau koneksi lambat.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`ERROR DOWNLOAD!\n\n${errorMessage}\n\nSilakan coba lagi atau hubungi admin.`);
+    } finally {
+      setIsDownloading(false);
     }
   }
 
@@ -162,15 +185,28 @@ export default function ManagerDocumentCard({ document: doc, onRefresh }: Manage
           </div>
 
           {/* Right Section - Actions */}
-          <div className="flex flex-col gap-3 min-w-[220px]">
+          <div className="flex flex-col gap-3 min-w-55">
             <Button onClick={handleOpenPage} className="bg-[#125d72] hover:bg-[#14a2ba]">
               <Eye className="w-4 h-4 mr-2" />
               Preview & Coret
             </Button>
 
-            <Button onClick={handleDownload} variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Download
+            <Button 
+              onClick={handleDownload} 
+              variant="outline"
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </>
+              )}
             </Button>
 
             <Button onClick={() => setShowRevisionModal(true)} className="bg-cyan-600 hover:bg-cyan-700">
@@ -219,7 +255,7 @@ export default function ManagerDocumentCard({ document: doc, onRefresh }: Manage
 
       {/* Action Modal */}
       <Dialog open={showActionModal} onOpenChange={setShowActionModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-125">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {getActionModalConfig()?.icon}

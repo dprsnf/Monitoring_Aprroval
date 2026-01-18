@@ -187,7 +187,7 @@ export default function ProgressApprovalPage() {
   // Loading dari auth atau API
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
+      <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
         <Header
           currentUser={user}
           title="Progress"
@@ -208,7 +208,7 @@ export default function ProgressApprovalPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
+      <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
         <Header
           currentUser={user}
           title="Progress"
@@ -229,7 +229,7 @@ export default function ProgressApprovalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
+    <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
       <Header
         currentUser={user}
         title="Progress Approval System"
@@ -243,21 +243,21 @@ export default function ProgressApprovalPage() {
           <ProgressStatsCard
             icon={Building}
             iconColor="text-[#14a2ba]"
-            bgColor="bg-gradient-to-br from-blue-100 to-blue-50"
+            bgColor="bg-linear-to-br from-blue-100 to-blue-50"
             label="Total Projects"
             value={total}
           />
           <ProgressStatsCard
             icon={PlayCircle}
             iconColor="text-blue-600"
-            bgColor="bg-gradient-to-br from-blue-100 to-blue-50"
+            bgColor="bg-linear-to-br from-blue-100 to-blue-50"
             label="In Progress"
             value={inProgress}
           />
           <ProgressStatsCard
             icon={AlertCircle}
             iconColor="text-yellow-600"
-            bgColor="bg-gradient-to-br from-yellow-100 to-yellow-50"
+            bgColor="bg-linear-to-br from-yellow-100 to-yellow-50"
             label="On Hold"
             value={onHold}
           />
