@@ -280,7 +280,7 @@ export default function ManagerDocumentCard({ document: doc, onRefresh }: Manage
                 placeholder={getActionModalConfig()?.notesPlaceholder}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="min-h-[100px] resize-none"
+                className="min-h-25 resize-none"
                 disabled={isSubmitting}
               />
               {getActionModalConfig()?.notesRequired && !notes.trim() && (

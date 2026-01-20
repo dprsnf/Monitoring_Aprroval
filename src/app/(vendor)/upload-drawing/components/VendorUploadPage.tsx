@@ -323,7 +323,7 @@ export default function VendorUploadPage({
                         type="button"
                         size="lg"
                         className="bg-green-600 hover:bg-green-700"
-                        onClick={(e) => {
+                        onClick={(e: { preventDefault: () => void; stopPropagation: () => void; }) => {
                           e.preventDefault();
                           e.stopPropagation();
                           const data = {

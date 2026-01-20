@@ -69,19 +69,19 @@ export default function HistoryVendorModal({
               </h4>
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Submitted:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Submitted:</span>
                   <span className="text-gray-900">{new Date(vendor.submissionDate).toLocaleString('id-ID')}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Status:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Status:</span>
                   {getStatusBadge(vendor.finalStatus)}
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Completed:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Completed:</span>
                   <span className="text-gray-900">{vendor.completionDate ? new Date(vendor.completionDate).toLocaleString('id-ID') : 'Not completed'}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Reviewer:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Reviewer:</span>
                   <span className="text-gray-900">{vendor.reviewer || 'Not assigned'}</span>
                 </div>
               </div>

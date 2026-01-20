@@ -280,7 +280,7 @@ function RevisionUploadModalContent({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={(e) => {
+                  onClick={(e: { stopPropagation: () => void }) => {
                     e.stopPropagation()
                     handleRemoveFile()
                   }}

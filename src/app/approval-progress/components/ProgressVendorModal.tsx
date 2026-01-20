@@ -123,13 +123,13 @@ export default function ProgressVendorModal({
               </h4>
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Submitted:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Submitted:</span>
                   <span className="text-gray-900">
                     {new Date(vendor.submissionDate).toLocaleString("id-ID")}
                   </span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Progress:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Progress:</span>
                   <div className="flex items-center gap-2 flex-1">
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
                       <div
@@ -141,13 +141,13 @@ export default function ProgressVendorModal({
                   </div>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Est. Complete:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Est. Complete:</span>
                   <span className="text-gray-900">
                     {new Date(vendor.estimatedCompletion).toLocaleDateString("id-ID")}
                   </span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Reviewer:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Reviewer:</span>
                   <span className="text-gray-900">{vendor.assignedReviewer}</span>
                 </div>
               </div>

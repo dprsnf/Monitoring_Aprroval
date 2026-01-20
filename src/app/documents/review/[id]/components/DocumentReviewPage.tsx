@@ -288,6 +288,24 @@ export default function DocumentReviewPage({
     setNumPages(numPages);
   };
 
+  // ✅ Helper function untuk konversi koordinat mouse ke canvas coordinates
+  const getCanvasCoordinates = (
+    e: React.MouseEvent<HTMLCanvasElement>,
+    canvas: HTMLCanvasElement
+  ): Point => {
+    const rect = canvas.getBoundingClientRect();
+    
+    // Hitung scale factor antara canvas internal size dan display size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    // Konversi koordinat mouse ke canvas coordinates
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  };
+
   const startDrawing = (
     e: React.MouseEvent<HTMLCanvasElement>,
     page: number
@@ -295,9 +313,7 @@ export default function DocumentReviewPage({
     // Check if clicking on existing annotation for dragging
     const canvas = canvasRefs.current[page];
     if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = getCanvasCoordinates(e, canvas);
 
     // Check if clicking on text or stamp annotation (reverse order to get topmost)
     const clickedAnnotation = [...annotations].reverse().find((ann) => {
@@ -352,9 +368,7 @@ export default function DocumentReviewPage({
   const draw = (e: React.MouseEvent<HTMLCanvasElement>, page: number) => {
     const canvas = canvasRefs.current[page];
     if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = getCanvasCoordinates(e, canvas);
 
     // Update hover state for cursor feedback
     if (!isDrawing && !draggingAnnotation) {
@@ -1277,26 +1291,51 @@ export default function DocumentReviewPage({
           >
             <div className="flex justify-center">
               <div className="relative shadow-2xl bg-white" style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}>
-                <Page
+                                <Page
                   pageNumber={pageNumber}
                   width={900}
                   renderTextLayer={false}
                   renderAnnotationLayer={false}
+                  canvasRef={(canvas) => {
+                    // Sync overlay canvas size immediately when PDF canvas is ready
+                    if (canvas) {
+                      const overlay = canvasRefs.current[pageNumber];
+                      if (overlay) {
+                        const rect = canvas.getBoundingClientRect();
+                        // ✅ PERBAIKAN: Force canvas internal size to 900px width
+                        // Ini memastikan koordinat selalu dalam skala 900px (matching backend)
+                        const aspectRatio = canvas.height / canvas.width;
+                        overlay.width = 900; // Fixed internal width
+                        overlay.height = Math.round(900 * aspectRatio);
+                        // Display size tetap match dengan PDF canvas display
+                        overlay.style.width = `${rect.width}px`;
+                        overlay.style.height = `${rect.height}px`;
+                        overlay.style.position = 'absolute';
+                        overlay.style.top = '0';
+                        overlay.style.left = '0';
+                        redrawAnnotations(pageNumber);
+                      }
+                    }
+                  }}
                   onRenderSuccess={() => {
-                    setTimeout(() => {
+                    // Double-check after render completes
+                    requestAnimationFrame(() => {
                       const pageEl = document.querySelector(
                         `.react-pdf__Page[data-page-number="${pageNumber}"]`
                       );
-                      const canvas = pageEl?.querySelector("canvas");
+                      const canvas = pageEl?.querySelector("canvas") as HTMLCanvasElement;
                       const overlay = canvasRefs.current[pageNumber];
                       if (canvas && overlay) {
-                        overlay.width = canvas.width;
-                        overlay.height = canvas.height;
-                        overlay.style.width = `${canvas.width}px`;
-                        overlay.style.height = `${canvas.height}px`;
+                        const rect = canvas.getBoundingClientRect();
+                        // ✅ PERBAIKAN: Force 900px internal width
+                        const aspectRatio = canvas.height / canvas.width;
+                        overlay.width = 900;
+                        overlay.height = Math.round(900 * aspectRatio);
+                        overlay.style.width = `${rect.width}px`;
+                        overlay.style.height = `${rect.height}px`;
                         redrawAnnotations(pageNumber);
                       }
-                    }, 150);
+                    });
                   }}
                 />
                 <canvas
