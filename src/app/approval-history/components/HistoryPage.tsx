@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import {
-  VendorHistory,
-  HistoryDocument,
-} from "@/app/types/documentTypes";
+import { VendorHistory, HistoryDocument } from "@/app/types/documentTypes";
 
 import HistoryStatsCard from "./HistoryStatsCard";
 import HistorySearchFilter from "./HistorySearchFilter";
@@ -23,13 +20,17 @@ import {
 
 import { Card } from "@/components/ui/card";
 import Header from "@/components/common/Header";
-import { Division } from "@/app/types";
+import { ApiErrorResponse, Division } from "@/app/types";
+import { isAxiosError } from "axios";
 
 export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [selectedVendor, setSelectedVendor] = useState<VendorHistory | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<HistoryDocument | null>(null);
+  const [selectedVendor, setSelectedVendor] = useState<VendorHistory | null>(
+    null,
+  );
+  const [selectedDocument, setSelectedDocument] =
+    useState<HistoryDocument | null>(null);
   const [showVendorModal, setShowVendorModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
 
@@ -50,36 +51,33 @@ export default function HistoryPage() {
         setLoading(true);
         setError(null);
 
-        const { data } = await api.get("/documents/history");  
+        const { data } = await api.get("/documents/history");
 
         const mapped: VendorHistory[] = data.map((doc: any) => {
-          const latestVersion = doc.versions[0] ?? {};
+          // const latestVersion = doc.versions[0] ?? {};
           const finalApproval = (doc.approvals ?? [])[0] ?? {};
 
           /* finalStatus */
           const finalStatus: "approved" | "rejected" =
-            doc.status === "rejected"
-              ? "rejected"
-              : "approved"; // approvedWithNotes → approved
+            doc.status === "rejected" ? "rejected" : "approved"; // approvedWithNotes → approved
 
           /* hitung docs */
           const totalDocs = doc.versions.length;
           const approvedDocs = doc.versions.filter((v: any) =>
             (v.approvals ?? []).some(
               (a: any) =>
-                a.status === "approved" || a.status === "approvedWithNotes"
-            )
+                a.status === "approved" || a.status === "approvedWithNotes",
+            ),
           ).length;
           const rejectedDocs = doc.versions.filter((v: any) =>
-            (v.approvals ?? []).some((a: any) => a.status === "rejected")
+            (v.approvals ?? []).some((a: any) => a.status === "rejected"),
           ).length;
           const pendingDocs = totalDocs - approvedDocs - rejectedDocs;
 
           return {
             id: `VH-${doc.id}`,
             vendorName: doc.submittedBy?.name ?? "Unknown",
-            company:
-              doc.submittedBy?.email?.split("@")[0] ?? "Unknown Company",
+            company: doc.submittedBy?.email?.split("@")[0] ?? "Unknown Company",
             projectTitle: doc.name,
             submissionDate: doc.createdAt,
             category:
@@ -95,7 +93,7 @@ export default function HistoryPage() {
             description: `Dokumen ${doc.documentType} – kontrak ${
               doc.contract?.contractNumber ?? "N/A"
             }`,
-            drawings: doc.versions.map((v: any, idx: number) => {
+            drawings: doc.versions.map((v: any) => {
               const va = (v.approvals ?? [])[0] ?? {};
               return {
                 id: `DOC-${v.id}`,
@@ -107,8 +105,8 @@ export default function HistoryPage() {
                   va.status === "rejected"
                     ? "rejected"
                     : va.status === "approvedWithNotes"
-                    ? "approved"
-                    : "approved",
+                      ? "approved"
+                      : "approved",
                 reviewDate: va.createdAt,
                 reviewedBy: va.approvedBy?.name,
                 description: `Versi ${v.version} – ${doc.name}`,
@@ -122,12 +120,13 @@ export default function HistoryPage() {
         });
 
         setHistoryData(mapped);
-      } catch (err: any) {
-        const msg =
-          err.response?.data?.message ||
-          err.message ||
-          "Gagal memuat riwayat dokumen.";
-        setError(msg);
+      } catch (err: unknown) {
+        if (isAxiosError<ApiErrorResponse>(err)) {
+          alert(err.response?.data?.message || "Gagal Memuat Riwayat Dokumen.");
+        } else {
+          alert("Terjadi kesalahan yang tidak terduga.");
+        }
+        // setError(err);
         console.error(err);
       } finally {
         setLoading(false);
@@ -143,14 +142,19 @@ export default function HistoryPage() {
       v.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.company.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchFilter = filterStatus === "all" || v.finalStatus === filterStatus;
+    const matchFilter =
+      filterStatus === "all" || v.finalStatus === filterStatus;
     return matchSearch && matchFilter;
   });
 
   /* ---------- STATS ---------- */
   const totalVendors = filteredData.length;
-  const approvedVendors = filteredData.filter((v) => v.finalStatus === "approved").length;
-  const rejectedVendors = filteredData.filter((v) => v.finalStatus === "rejected").length;
+  const approvedVendors = filteredData.filter(
+    (v) => v.finalStatus === "approved",
+  ).length;
+  const rejectedVendors = filteredData.filter(
+    (v) => v.finalStatus === "rejected",
+  ).length;
   const inReviewVendors = 0; // history = selesai
 
   /* ---------- HANDLER MODAL ---------- */

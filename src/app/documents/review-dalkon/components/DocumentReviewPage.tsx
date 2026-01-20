@@ -180,7 +180,7 @@ export default function DocumentReviewPage() {
         setError(null);
 
         let endpoint = "";
-        let payload: any = { action: "returnForCorrection", notes };
+        const payload: any = { action: "returnForCorrection", notes };
 
         if (currentUser.division === Division.Dalkon) {
             // ✅ FIX: Dalkon bisa return dari berbagai status
