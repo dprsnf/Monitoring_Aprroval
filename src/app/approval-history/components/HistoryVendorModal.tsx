@@ -56,10 +56,10 @@ export default function HistoryVendorModal({
                   <span className="font-medium text-gray-700 min-w-20">Category:</span>
                   <span className="text-gray-900">{vendor.category}</span>
                 </div>
-                <div className="flex flex-col xs:flex-row xs:items-start gap-1">
+                {/* <div className="flex flex-col xs:flex-row xs:items-start gap-1">
                   <span className="font-medium text-gray-700 min-w-20">Priority:</span>
                   {getPriorityBadge(vendor.priority)}
-                </div>
+                </div> */}
               </div>
             </div>
             <div className="space-y-3">

@@ -5,8 +5,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { FileText, PlayCircle, Download, MessageSquare, CheckCircle, Clock} from "lucide-react";
+import { FileText, PlayCircle, CheckCircle, Clock} from "lucide-react";
 import { ProgressDocument } from "@/app/types/progressTypes";
 
 interface ProgressDocumentModalProps {
@@ -70,10 +69,10 @@ export default function ProgressDocumentModal({
                   <span className="font-medium text-gray-700 min-w-15">Category:</span>
                   <span className="text-gray-900">{document.category}</span>
                 </div>
-                <div className="flex flex-col xs:flex-row xs:items-start gap-1">
+                {/* <div className="flex flex-col xs:flex-row xs:items-start gap-1">
                   <span className="font-medium text-gray-700 min-w-15">Priority:</span>
                   {getPriorityBadge(document.priority)}
-                </div>
+                </div> */}
               </div>
             </div>
             <div className="space-y-3">
@@ -92,12 +91,12 @@ export default function ProgressDocumentModal({
                   <span className="font-medium text-gray-700 min-w-20">Status:</span>
                   <Badge
                     className={`${
-                      document.status === "on_hold"
+                      document.status === "on_revision"
                         ? "bg-yellow-100 text-yellow-800 border border-yellow-200"
                         : "bg-blue-100 text-blue-800 border border-blue-200"
                     }`}
                   >
-                    {document.status === "on_hold" ? "On Hold" : "In Progress"}
+                    {document.status === "on_revision" ? "On Revision" : "In Progress"}
                   </Badge>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
@@ -225,7 +224,7 @@ export default function ProgressDocumentModal({
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
+          {/* <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
             <Button className="flex-1 bg-linear-to-r from-[#14a2ba] to-[#125d72] hover:from-[#125d72] hover:to-[#14a2ba] text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm">
               <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Download Document
@@ -237,7 +236,7 @@ export default function ProgressDocumentModal({
               <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Add Comment
             </Button>
-          </div>
+          </div> */}
         </div>
       </DialogContent>
     </Dialog>

@@ -7,6 +7,7 @@ import {
   Download,
   XCircle,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ export default function DocumentReviewPage() {
   );
   const [detailData, setDetailData] = useState<Document | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | number | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false); 
@@ -306,6 +308,94 @@ export default function DocumentReviewPage() {
     setShowRejectModal(true);
   }, []);
 
+  // ✅ Handle Download File (untuk detail modal)
+  const handleDownloadFile = useCallback(
+    async (documentId: number, fileName: string, versionId?: string | number) => {
+      setDownloadingId(versionId ?? "main");
+      try {
+        const url = versionId
+          ? `/documents/${documentId}/file/${versionId}`
+          : `/documents/${documentId}/file`;
+
+        console.log("📥 Starting download from:", url);
+
+        const response = await api.get(url, {
+          responseType: "arraybuffer",
+          timeout: 120000,
+        });
+
+        console.log("📦 Response received:", {
+          status: response.status,
+          contentType: response.headers["content-type"],
+          contentLength: response.headers["content-length"],
+        });
+
+        const blob = new Blob([response.data], {
+          type: response.headers["content-type"] || "application/pdf",
+        });
+
+        console.log("💾 Blob created:", { size: blob.size, type: blob.type });
+
+        if (blob.size === 0) {
+          throw new Error("File kosong atau tidak valid");
+        }
+
+        let downloadFilename = `${fileName}.pdf`;
+        const contentDisposition =
+          response.headers["content-disposition"] ||
+          response.headers["Content-Disposition"];
+        if (contentDisposition) {
+          const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/.exec(
+            contentDisposition
+          );
+          if (match) {
+            downloadFilename = decodeURIComponent(match[1] || match[2]);
+          }
+        }
+
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = downloadFilename;
+        link.style.display = "none";
+
+        document.body.appendChild(link);
+        console.log("📥 Triggering download:", downloadFilename);
+
+        setTimeout(() => {
+          link.click();
+        }, 100);
+
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+          console.log("✅ Download completed:", downloadFilename);
+        }, 500);
+      } catch (error: unknown) {
+        console.error("❌ Download error:", error);
+        const err = error as any;
+        let errorMessage = "Gagal mendownload file.";
+
+        if (err?.response?.status === 404) {
+          errorMessage = "File tidak ditemukan di server.";
+        } else if (err?.response?.status === 403) {
+          errorMessage = "Anda tidak memiliki akses ke file ini.";
+        } else if (err?.code === "ECONNABORTED") {
+          errorMessage = "Timeout - File terlalu besar atau koneksi lambat.";
+        } else if (err?.message === "File kosong atau tidak valid") {
+          errorMessage = "File yang didownload kosong atau tidak valid.";
+        } else if (err?.message) {
+          errorMessage = err.message;
+        }
+
+        alert(errorMessage);
+      } finally {
+        setDownloadingId(null);
+      }
+    },
+    []
+  );
+
   const filteredData = documents.filter((doc) => {
     const matchesSearch =
       doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -502,11 +592,20 @@ export default function DocumentReviewPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                disabled={downloadingId === version.id}
                                 onClick={() =>
-                                  window.open(version.fileUrl, "_blank")
+                                  handleDownloadFile(
+                                    detailData.id,
+                                    `${detailData.name}_v${version.version}`,
+                                    version.id
+                                  )
                                 }
                               >
-                                <Download className="w-3 h-3" />
+                                {downloadingId === version.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Download className="w-3 h-3" />
+                                )}
                               </Button>
                             </div>
                           ))}

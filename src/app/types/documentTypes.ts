@@ -28,13 +28,19 @@ export interface Version {
 }
 
 export interface Document {
+  returnRequestedBy: any;
   id: number;
   name: string;
   documentType: "protection" | "civil";
   createdAt: string;
+  updatedAt?: string;
+  status?: string; // Status dokumen dari backend
+  progress?: string[]; // Array riwayat aktivitas
   submittedBy: User;
+  reviewedBy?: User; // Reviewer terakhir
   contract?: {
     contractNumber: string;
+    contractDate?: string;
   };
   versions: Version[];
   approvals?: Approval[];
