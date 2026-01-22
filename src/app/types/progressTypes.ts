@@ -23,7 +23,7 @@ export interface ProgressDocument {
   uploadDate: string;
   currentStep: number;
   totalSteps: number;
-  status: "in_progress" | "on_hold";
+  status: "in_progress" | "on_revision";
   description: string;
   category: string;
   priority: "high" | "medium" | "low";
@@ -43,7 +43,7 @@ export interface VendorProgress {
   totalDocuments: number;
   completedDocuments: number;
   inProgressDocuments: number;
-  onHoldDocuments: number;
+  onRevisionDocuments: number;
   estimatedCompletion: string;
   assignedReviewer: string;
   description: string;

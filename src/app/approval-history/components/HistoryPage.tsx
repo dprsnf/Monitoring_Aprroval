@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import {
-  VendorHistory,
-  HistoryDocument,
-} from "@/app/types/documentTypes";
+import { VendorHistory, HistoryDocument } from "@/app/types/documentTypes";
 
 import HistoryStatsCard from "./HistoryStatsCard";
 import HistorySearchFilter from "./HistorySearchFilter";
@@ -23,13 +20,17 @@ import {
 
 import { Card } from "@/components/ui/card";
 import Header from "@/components/common/Header";
-import { Division } from "@/app/types";
+import { ApiErrorResponse, Division } from "@/app/types";
+import { isAxiosError } from "axios";
 
 export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [selectedVendor, setSelectedVendor] = useState<VendorHistory | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<HistoryDocument | null>(null);
+  const [selectedVendor, setSelectedVendor] = useState<VendorHistory | null>(
+    null,
+  );
+  const [selectedDocument, setSelectedDocument] =
+    useState<HistoryDocument | null>(null);
   const [showVendorModal, setShowVendorModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
 
@@ -37,12 +38,24 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const currentUser = {
-    id: 0,
-    name: "History Team",
-    email: "history@pln.co.id",
-    division: Division.Dalkon,
-  };
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Get current user from localStorage/context
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        setCurrentUser(JSON.parse(userData));
+      } catch {
+        setCurrentUser({
+          id: 0,
+          name: "History Team",
+          email: "history@pln.co.id",
+          division: Division.Dalkon,
+        });
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -50,41 +63,40 @@ export default function HistoryPage() {
         setLoading(true);
         setError(null);
 
-        const { data } = await api.get("/documents/history");  
+        // 🔒 Backend akan filter otomatis berdasarkan user role
+        // Vendor hanya lihat dokumen mereka, role lain lihat semua
+        const { data } = await api.get("/documents/history");
 
-        const mapped: VendorHistory[] = data.map((doc: any) => {
-          const latestVersion = doc.versions[0] ?? {};
+        const mapped: VendorHistory[] = (data ?? []).map((doc: any) => {
           const finalApproval = (doc.approvals ?? [])[0] ?? {};
 
           /* finalStatus */
           const finalStatus: "approved" | "rejected" =
-            doc.status === "rejected"
-              ? "rejected"
-              : "approved"; // approvedWithNotes → approved
+            doc.status === "rejected" ? "rejected" : "approved";
 
           /* hitung docs */
-          const totalDocs = doc.versions.length;
-          const approvedDocs = doc.versions.filter((v: any) =>
+          const versions = doc.versions ?? [];
+          const totalDocs = versions.length;
+          const approvedDocs = versions.filter((v: any) =>
             (v.approvals ?? []).some(
               (a: any) =>
-                a.status === "approved" || a.status === "approvedWithNotes"
-            )
+                a.status === "approved" || a.status === "approvedWithNotes",
+            ),
           ).length;
-          const rejectedDocs = doc.versions.filter((v: any) =>
-            (v.approvals ?? []).some((a: any) => a.status === "rejected")
+          const rejectedDocs = versions.filter((v: any) =>
+            (v.approvals ?? []).some((a: any) => a.status === "rejected"),
           ).length;
           const pendingDocs = totalDocs - approvedDocs - rejectedDocs;
 
           return {
             id: `VH-${doc.id}`,
             vendorName: doc.submittedBy?.name ?? "Unknown",
-            company:
-              doc.submittedBy?.email?.split("@")[0] ?? "Unknown Company",
+            company: doc.submittedBy?.email?.split("@")[0] ?? "Unknown Company",
             projectTitle: doc.name,
             submissionDate: doc.createdAt,
             category:
               doc.documentType === "protection" ? "Protection" : "Civil",
-            priority: "high", // bisa ditambah di DB
+            // priority: "high",
             finalStatus,
             totalDocuments: totalDocs,
             approvedDocuments: approvedDocs,
@@ -92,29 +104,29 @@ export default function HistoryPage() {
             pendingDocuments: pendingDocs,
             completionDate: finalApproval.createdAt ?? doc.updatedAt,
             reviewer: finalApproval.approvedBy?.name ?? "Unknown",
-            description: `Dokumen ${doc.documentType} – kontrak ${
+            description: `Dokumen ${doc.documentType ?? "N/A"} – kontrak ${
               doc.contract?.contractNumber ?? "N/A"
             }`,
-            drawings: doc.versions.map((v: any, idx: number) => {
+            drawings: versions.map((v: any) => {
               const va = (v.approvals ?? [])[0] ?? {};
               return {
                 id: `DOC-${v.id}`,
                 fileName: `${doc.name}_v${v.version}.pdf`,
                 fileType: "PDF",
-                fileSize: "0 MB", // optional di DB
+                fileSize: "0 MB",
                 uploadDate: v.createdAt,
                 status:
                   va.status === "rejected"
                     ? "rejected"
                     : va.status === "approvedWithNotes"
-                    ? "approved"
-                    : "approved",
+                      ? "approved"
+                      : "approved",
                 reviewDate: va.createdAt,
                 reviewedBy: va.approvedBy?.name,
                 description: `Versi ${v.version} – ${doc.name}`,
                 category:
                   doc.documentType === "protection" ? "Protection" : "Civil",
-                priority: "high",
+                // priority: "high",
                 reviewNotes: va.notes,
               };
             }),
@@ -122,12 +134,13 @@ export default function HistoryPage() {
         });
 
         setHistoryData(mapped);
-      } catch (err: any) {
-        const msg =
-          err.response?.data?.message ||
-          err.message ||
-          "Gagal memuat riwayat dokumen.";
-        setError(msg);
+      } catch (err: unknown) {
+        if (isAxiosError<ApiErrorResponse>(err)) {
+          alert(err.response?.data?.message || "Gagal Memuat Riwayat Dokumen.");
+        } else {
+          alert("Terjadi kesalahan yang tidak terduga.");
+        }
+        // setError(err);
         console.error(err);
       } finally {
         setLoading(false);
@@ -143,14 +156,19 @@ export default function HistoryPage() {
       v.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.company.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchFilter = filterStatus === "all" || v.finalStatus === filterStatus;
+    const matchFilter =
+      filterStatus === "all" || v.finalStatus === filterStatus;
     return matchSearch && matchFilter;
   });
 
   /* ---------- STATS ---------- */
   const totalVendors = filteredData.length;
-  const approvedVendors = filteredData.filter((v) => v.finalStatus === "approved").length;
-  const rejectedVendors = filteredData.filter((v) => v.finalStatus === "rejected").length;
+  const approvedVendors = filteredData.filter(
+    (v) => v.finalStatus === "approved",
+  ).length;
+  const rejectedVendors = filteredData.filter(
+    (v) => v.finalStatus === "rejected",
+  ).length;
   const inReviewVendors = 0; // history = selesai
 
   /* ---------- HANDLER MODAL ---------- */
@@ -221,7 +239,12 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
       <Header
-        currentUser={currentUser}
+        currentUser={currentUser || {
+          id: 0,
+          name: "User",
+          email: "user@pln.co.id",
+          division: Division.Dalkon,
+        }}
         title="History & Reports System"
         backHref="/dashboard"
         backLabel="Dashboard"
@@ -230,7 +253,7 @@ export default function HistoryPage() {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* ==== STATS ==== */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
           <HistoryStatsCard
             icon={Building}
             iconColor="text-[#14a2ba]"
@@ -252,13 +275,13 @@ export default function HistoryPage() {
             label="Rejected"
             value={rejectedVendors}
           />
-          <HistoryStatsCard
+          {/* <HistoryStatsCard
             icon={Clock}
             iconColor="text-gray-600"
             bgColor="bg-linear-to-br from-gray-100 to-gray-50"
             label="In Review"
             value={inReviewVendors}
-          />
+          /> */}
         </div>
 
         {/* ==== SEARCH & FILTER ==== */}

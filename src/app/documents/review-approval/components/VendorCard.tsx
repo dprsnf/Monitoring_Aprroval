@@ -39,11 +39,11 @@ export default function VendorCard({
               <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                 {vendor.user.name}
               </h3>
-              <Badge
+              {/* <Badge
                 className={`${getPriorityColor(vendor.priority)} whitespace-nowrap`}
               >
                 {vendor.priority.toUpperCase()} Priority
-              </Badge>
+              </Badge> */}
             </div>
 
             <div className="space-y-2 mb-4">

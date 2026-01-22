@@ -25,48 +25,98 @@ export default function DetailModal({
   // State untuk tracking download progress
   const [downloadingId, setDownloadingId] = useState<string | number | null>(null);
 
-  // ✅ PERBAIKAN: Handler untuk download file
-  const handleDownload = async (documentId: number, fileName: string, versionId: string | number) => {
-    setDownloadingId(versionId); // Set loading state
+  // ✅ PERBAIKAN: Handler untuk download file dengan support versionId - robust approach
+  const handleDownload = async (
+    documentId: number,
+    fileName: string,
+    versionId?: string | number,
+  ) => {
+    setDownloadingId(versionId ?? "main");
     try {
-      console.log("📥 Downloading document:", { documentId, fileName });
-      
-      const response = await api.get(`/documents/${documentId}/file`, {
-        responseType: 'blob', // ✅ CRITICAL: Get as blob for file download
-        timeout: 120000, // 2 minutes timeout untuk file besar
+      const url = versionId
+        ? `/documents/${documentId}/file/${versionId}`
+        : `/documents/${documentId}/file`;
+
+      console.log("📥 Starting download from:", url);
+
+      // 🔧 FIX: Use api instance config properly
+      const response = await api.get(url, {
+        responseType: "arraybuffer",
+        timeout: 120000,
       });
 
-      // Create blob URL
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
+      console.log("📦 Response received:", {
+        status: response.status,
+        contentType: response.headers["content-type"],
+        contentLength: response.headers["content-length"],
+      });
 
-      // Create temporary link and trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${fileName}.pdf`; // Set filename for download
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      console.log("✅ Download successful");
-    } catch (error: any) {
-      console.error("❌ Download error:", error);
-      
-      let errorMessage = "Gagal mendownload file.";
-      if (error.response?.status === 404) {
-        errorMessage = "File tidak ditemukan di server.";
-      } else if (error.code === 'ECONNABORTED') {
-        errorMessage = "Timeout - File terlalu besar atau koneksi lambat.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      // ✅ Create blob dari arraybuffer
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"] || "application/pdf",
+      });
+
+      console.log("💾 Blob created:", { size: blob.size, type: blob.type });
+
+      if (blob.size === 0) {
+        throw new Error("File kosong atau tidak valid");
       }
-      
-      alert(`ERROR DOWNLOAD!\n\n${errorMessage}\n\nSilakan coba lagi atau hubungi admin.`);
+
+      // ✅ Better filename handling
+      let downloadFilename = `${fileName}.pdf`;
+      const contentDisposition =
+        response.headers["content-disposition"] ||
+        response.headers["Content-Disposition"];
+      if (contentDisposition) {
+        const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/.exec(
+          contentDisposition,
+        );
+        if (match) {
+          downloadFilename = decodeURIComponent(match[1] || match[2]);
+        }
+      }
+
+      // ✅ Create download link dan trigger
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = downloadFilename;
+      link.style.display = "none";
+
+      document.body.appendChild(link);
+      console.log("📥 Triggering download:", downloadFilename);
+
+      // Trigger click with slight delay
+      setTimeout(() => {
+        link.click();
+      }, 100);
+
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+        console.log("✅ Download completed:", downloadFilename);
+      }, 500);
+    } catch (error: unknown) {
+      console.error("❌ Download error:", error);
+      const err = error as any;
+      let errorMessage = "Gagal mendownload file.";
+
+      if (err?.response?.status === 404) {
+        errorMessage = "File tidak ditemukan di server.";
+      } else if (err?.response?.status === 403) {
+        errorMessage = "Anda tidak memiliki akses ke file ini.";
+      } else if (err?.code === "ECONNABORTED") {
+        errorMessage = "Timeout - File terlalu besar atau koneksi lambat.";
+      } else if (err?.message === "File kosong atau tidak valid") {
+        errorMessage = "File yang didownload kosong atau tidak valid.";
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+
+      alert(errorMessage);
     } finally {
-      setDownloadingId(null); // Clear loading state
+      setDownloadingId(null);
     }
   };
 
@@ -304,7 +354,7 @@ export default function DetailModal({
             </Card>
           )}
 
-          {/* ✅ BARU: File Versions (Riwayat Patch) */}
+          {/* BARU: File Versions (Riwayat Patch) */}
           {selectedDocument.versions &&
             selectedDocument.versions.length > 0 && (
               <Card className="shadow-lg border border-gray-200">
@@ -316,7 +366,7 @@ export default function DetailModal({
                 </CardHeader>
                 <CardContent className="p-3 sm:p-4 md:p-6 space-y-3">
                   {selectedDocument.versions
-                    .sort((a, b) => b.version - a.version) // Tampilkan dari terbaru
+                    .sort((a, b) => b.version - a.version)
                     .map((version) => (
                       <div
                         key={version.id}
@@ -346,7 +396,7 @@ export default function DetailModal({
                           onClick={() => handleDownload(
                             selectedDocument.id, 
                             `${selectedDocument.name}_v${version.version}`,
-                            version.id
+                            version.id  // ✅ Pass versionId untuk download versi spesifik
                           )}
                           variant="outline"
                           size="sm"

@@ -33,11 +33,11 @@ export default function ProgressSearchFilter({
             <select
               value={filterStatus}
               onChange={(e) => onFilterChange(e.target.value)}
-              className="w-full sm:w-auto pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:border-[#14a2ba] focus:ring-[#14a2ba] focus:ring-2 focus:ring-opacity-20 bg-white text-sm min-w-[160px]"
+              className="w-full sm:w-auto pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:border-[#14a2ba] focus:ring-[#14a2ba] focus:ring-2 focus:ring-opacity-20 bg-white text-sm min-w-40"
             >
               <option value="all">All Status</option>
               <option value="in_progress">In Progress</option>
-              <option value="on_hold">On Hold</option>
+              <option value="on_revision">On Revision</option>
             </select>
           </div>
         </div>

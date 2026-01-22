@@ -53,23 +53,35 @@ export default function ProgressApprovalPage() {
 
         const mapped: VendorProgress[] = filteredDocs.map((doc) => {
           const versions = doc.versions || [];
-          const totalDocs = versions.length;
+          const totalDocs = 1; // Hitung per dokumen, bukan per version
 
-          const completed = versions.filter((v) =>
-            v.approvals?.some(
-              (a) => a.status === "approved" || a.status === "approvedWithNotes"
-            )
-          ).length;
+          // Calculate progress based on document status
+          const getDocumentProgress = (status: string) => {
+            switch (status) {
+              case "submitted":
+                return 10; // Baru submit
+              case "inReviewEngineering":
+                return 35; // Sedang di review Engineer
+              case "approved":
+              case "approvedWithNotes":
+                return 60; // Approved by Engineer
+              case "inReviewManager":
+                return 80; // Sedang di review Manager
+              case "inReviewConsultant":
+                return 95; // Sedang di review Consultant/Dalkon final
+              case "returnForCorrection":
+                return 5; // Dikembalikan untuk revisi
+              case "rejected":
+                return 0; // Ditolak
+              default:
+                return 0;
+            }
+          };
 
-          const inProgress = versions.filter(
-            (v) =>
-              !v.approvals?.length ||
-              v.approvals[0]?.status === "inReviewEngineering"
-          ).length;
-
-          const onHold = versions.filter(
-            (v) => v.approvals?.[0]?.status === "returnForCorrection"
-          ).length;
+          const currentProgress = getDocumentProgress(doc.status || "submitted");
+          const isCompleted = doc.status === "approved" || doc.status === "approvedWithNotes";
+          const isInProgress = !isCompleted && doc.status !== "returnForCorrection" && doc.status !== "rejected";
+          const isOnRevision = doc.returnRequestedBy !== null;
 
           return {
             id: `VP-${doc.id}`,
@@ -79,14 +91,12 @@ export default function ProgressApprovalPage() {
             submissionDate: doc.createdAt,
             category: doc.documentType === "protection" ? "Protection" : "Civil",
             priority: "high" as const,
-            overallProgress:
-              totalDocs > 0
-                ? Math.round(((completed + inProgress * 0.5) / totalDocs) * 100)
-                : 0,
+            overallProgress: currentProgress,
             totalDocuments: totalDocs,
-            completedDocuments: completed,
-            inProgressDocuments: inProgress,
-            onHoldDocuments: onHold,
+            completedDocuments: isCompleted ? 1 : 0,
+            inProgressDocuments: isInProgress ? 1 : 0,
+            onRevisionDocuments: isOnRevision ? 1 : 0,
+            onHoldDocuments: 0,
             estimatedCompletion: new Date(
               Date.now() + 7 * 24 * 60 * 60 * 1000
             ).toISOString(),
@@ -96,47 +106,82 @@ export default function ProgressApprovalPage() {
               doc.contract?.contractNumber || "N/A"
             }`,
             drawings: versions.map((v): ProgressDocument => {
-              const approval = v.approvals?.[0] ?? null;
-              const isOnHold = approval?.status === "returnForCorrection";
-              const currentStep = approval
-                ? (approval.status === "inReviewEngineering" || isOnHold ? 2 : 1)
-                : 1;
+              const isOnRevision = doc.returnRequestedBy !== null && doc.returnRequestedBy !== undefined;
+              
+              // Determine current step based on document status
+              let currentStep = 1;
+              let stepStatus: "completed" | "current" | "pending" = "current";
+              
+              switch (doc.status) {
+                case "submitted":
+                  currentStep = 1;
+                  stepStatus = "current";
+                  break;
+                case "inReviewEngineering":
+                  currentStep = 2;
+                  stepStatus = "current";
+                  break;
+                case "approved":
+                case "approvedWithNotes":
+                  currentStep = 3;
+                  stepStatus = "current";
+                  break;
+                case "inReviewManager":
+                  currentStep = 3;
+                  stepStatus = "current";
+                  break;
+                case "inReviewConsultant":
+                  currentStep = 4;
+                  stepStatus = "current";
+                  break;
+                case "returnForCorrection":
+                  currentStep = 1;
+                  stepStatus = "pending";
+                  break;
+                default:
+                  currentStep = 1;
+                  stepStatus = "current";
+              }
 
               const progressSteps: ProgressStep[] = [
                 {
                   step: 1,
                   title: "Document Upload",
-                  status: "completed",
-                  completedDate: v.createdAt,
-                  reviewer: "System",
+                  status: currentStep > 1 ? "completed" : currentStep === 1 ? stepStatus : "pending",
+                  completedDate: doc.createdAt,
+                  reviewer: doc.submittedBy?.name,
+                  description: isOnRevision ? "Perlu revisi" : undefined,
                 },
                 {
                   step: 2,
-                  title: "Initial Review",
-                  status: approval ? "current" : "pending",
-                  reviewer: approval?.approvedBy?.name,
-                  description: isOnHold ? "Perlu revisi" : undefined,
+                  title: "Engineering Review",
+                  status: currentStep > 2 ? "completed" : currentStep === 2 ? stepStatus : "pending",
+                  reviewer: doc.status === "inReviewEngineering" || currentStep > 2 ? doc.reviewedBy?.name : undefined,
+                  completedDate: currentStep > 2 ? doc.updatedAt : undefined,
                 },
                 {
                   step: 3,
-                  title: "Technical Validation",
-                  status: "pending",
+                  title: "Manager Review",
+                  status: currentStep > 3 ? "completed" : currentStep === 3 ? stepStatus : "pending",
+                  reviewer: doc.status === "inReviewManager" || currentStep > 3 ? doc.reviewedBy?.name : undefined,
+                  completedDate: currentStep > 3 ? doc.updatedAt : undefined,
                 },
                 {
                   step: 4,
                   title: "Final Approval",
-                  status: "pending",
+                  status: currentStep >= 4 ? stepStatus : "pending",
+                  reviewer: doc.status === "inReviewConsultant" ? doc.reviewedBy?.name : undefined,
+                  completedDate: doc.status === "approved" ? doc.updatedAt : undefined,
                 },
               ];
 
-              const comments: Comment[] = (v.approvals ?? []).map((a) => ({
-                id: `c-${a.id}`,
-                author: a.approvedBy?.name ?? "Unknown",
-                date: a.createdAt,
-                message: a.notes ?? "Tidak ada catatan",
-                type: (a.status === "returnForCorrection"
-                  ? "warning"
-                  : "info") as "info" | "warning",
+              // Get comments from progress array
+              const comments: Comment[] = (doc.progress || []).map((p: string, index: number) => ({
+                id: `c-${doc.id}-${index}`,
+                author: "System",
+                date: doc.updatedAt || doc.createdAt,
+                message: p,
+                type: (p.includes("Returned") || p.includes("return") ? "warning" : "info") as "info" | "warning",
               }));
 
               return {
@@ -147,8 +192,8 @@ export default function ProgressApprovalPage() {
                 uploadDate: v.createdAt,
                 currentStep,
                 totalSteps: 4,
-                status: isOnHold ? "on_hold" : "in_progress",
-                description: `Versi ${v.version}`,
+                status: isOnRevision ? "on_revision" : "in_progress",
+                description: `Status: ${doc.status}`,
                 category: doc.documentType === "protection" ? "Protection" : "Civil",
                 priority: "high",
                 progressSteps,
@@ -169,6 +214,8 @@ export default function ProgressApprovalPage() {
     fetchProgress();
   }, [user]); // Re-fetch saat user berubah
 
+  console.log("Progress Data:", progressData);
+
   const filteredData = progressData.filter((v) => {
     const matchesSearch =
       v.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -176,13 +223,13 @@ export default function ProgressApprovalPage() {
     const matchesFilter =
       filterStatus === "all" ||
       (filterStatus === "in_progress" && v.inProgressDocuments > 0) ||
-      (filterStatus === "on_hold" && v.onHoldDocuments > 0);
+      (filterStatus === "on_revision" && v.onRevisionDocuments > 0);
     return matchesSearch && matchesFilter;
   });
 
   const total = filteredData.length;
   const inProgress = filteredData.filter((v) => v.inProgressDocuments > 0).length;
-  const onHold = filteredData.filter((v) => v.onHoldDocuments > 0).length;
+  const onRevision = filteredData.filter((v) => v.onRevisionDocuments > 0).length;
 
   // Loading dari auth atau API
   if (authLoading || loading) {
@@ -258,8 +305,8 @@ export default function ProgressApprovalPage() {
             icon={AlertCircle}
             iconColor="text-yellow-600"
             bgColor="bg-linear-to-br from-yellow-100 to-yellow-50"
-            label="On Hold"
-            value={onHold}
+            label="On Revision"
+            value={onRevision}
           />
         </div>
 

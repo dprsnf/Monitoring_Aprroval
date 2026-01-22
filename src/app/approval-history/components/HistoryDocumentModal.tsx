@@ -101,7 +101,7 @@ export default function HistoryDocumentModal({
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
+          {/* <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
             <Button className="flex-1 bg-linear-to-r from-[#14a2ba] to-[#125d72] hover:from-[#125d72] hover:to-[#14a2ba] text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm">
               <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Download Document
@@ -110,7 +110,7 @@ export default function HistoryDocumentModal({
               <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Preview
             </Button>
-          </div>
+          </div> */}
         </div>
       </DialogContent>
     </Dialog>

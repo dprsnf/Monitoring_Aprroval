@@ -15,7 +15,7 @@ interface VendorProgress {
   totalDocuments: number;
   completedDocuments: number;
   inProgressDocuments: number;
-  onHoldDocuments: number;
+  onRevisionDocuments: number;
   estimatedCompletion: string;
   assignedReviewer: string;
   description: string;
@@ -52,7 +52,7 @@ export default function ProgressVendorCard({ vendor, onViewDetails }: ProgressVe
                 <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 truncate group-hover:text-[#14a2ba] transition-colors duration-200">
                   {vendor.projectTitle}
                 </h3>
-                <div className="flex flex-wrap gap-2">{getPriorityBadge(vendor.priority)}</div>
+                {/* <div className="flex flex-wrap gap-2">{getPriorityBadge(vendor.priority)}</div> */}
               </div>
               <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 text-xs sm:text-sm">
                 <div className="flex items-center text-gray-600">
@@ -63,10 +63,10 @@ export default function ProgressVendorCard({ vendor, onViewDetails }: ProgressVe
                   <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#14a2ba] shrink-0" />
                   <span className="truncate">Due: {new Date(vendor.estimatedCompletion).toLocaleDateString("id-ID")}</span>
                 </div>
-                <div className="flex items-center text-gray-600">
+                {/* <div className="flex items-center text-gray-600">
                   <User className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#14a2ba] shrink-0" />
                   <span className="truncate">{vendor.assignedReviewer}</span>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
@@ -98,8 +98,8 @@ export default function ProgressVendorCard({ vendor, onViewDetails }: ProgressVe
               <p className="text-xs sm:text-sm text-gray-600 truncate">In Progress</p>
             </div>
             <div className="text-center p-2 sm:p-3 bg-linear-to-br from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200">
-              <p className="text-sm sm:text-base lg:text-lg font-bold text-yellow-700">{vendor.onHoldDocuments}</p>
-              <p className="text-xs sm:text-sm text-gray-600 truncate">On Hold</p>
+              <p className="text-sm sm:text-base lg:text-lg font-bold text-yellow-700">{vendor.onRevisionDocuments}</p>
+              <p className="text-xs sm:text-sm text-gray-600 truncate">On Revision</p>
             </div>
           </div>
 
@@ -114,9 +114,9 @@ export default function ProgressVendorCard({ vendor, onViewDetails }: ProgressVe
             >
               <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" /> View Progress
             </Button>
-            <Button variant="outline" className="flex-1 xs:flex-none border-2 border-[#14a2ba] text-[#14a2ba] hover:bg-[#14a2ba] hover:text-white transition-all duration-200 text-xs sm:text-sm">
+            {/* <Button variant="outline" className="flex-1 xs:flex-none border-2 border-[#14a2ba] text-[#14a2ba] hover:bg-[#14a2ba] hover:text-white transition-all duration-200 text-xs sm:text-sm">
               <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" /> Download
-            </Button>
+            </Button> */}
           </div>
         </div>
       </CardContent>

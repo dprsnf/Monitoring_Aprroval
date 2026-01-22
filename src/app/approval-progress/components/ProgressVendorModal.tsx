@@ -18,10 +18,10 @@ interface ProgressDocument {
   uploadDate: string;
   currentStep: number;
   totalSteps: number;
-  status: "in_progress" | "on_hold";
+  status: "in_progress" | "on_revision";
   description: string;
   category: string;
-  priority: "high" | "medium" | "low";
+  // priority: "high" | "medium" | "low";
 }
 
 interface VendorProgress {
@@ -36,7 +36,7 @@ interface VendorProgress {
   totalDocuments: number;
   completedDocuments: number;
   inProgressDocuments: number;
-  onHoldDocuments: number;
+  onRevisionDocuments: number;
   estimatedCompletion: string;
   assignedReviewer: string;
   description: string;
@@ -103,17 +103,17 @@ export default function ProgressVendorModal({
                   <span className="text-gray-900 wrap-break-words">{vendor.vendorName}</span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-20">Company:</span>
-                  <span className="text-gray-900 wrap-break-words">{vendor.company}</span>
+                  {/* <span className="font-medium text-gray-700 min-w-20">Company:</span>
+                  <span className="text-gray-900 wrap-break-words">{vendor.company}</span> */}
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
                   <span className="font-medium text-gray-700 min-w-20">Category:</span>
                   <span className="text-gray-900">{vendor.category}</span>
                 </div>
-                <div className="flex flex-col xs:flex-row xs:items-start gap-1">
+                {/* <div className="flex flex-col xs:flex-row xs:items-start gap-1">
                   <span className="font-medium text-gray-700 min-w-20">Priority:</span>
                   {getPriorityBadge(vendor.priority)}
-                </div>
+                </div> */}
               </div>
             </div>
             <div className="space-y-3">
@@ -123,13 +123,13 @@ export default function ProgressVendorModal({
               </h4>
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Submitted:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Submitted:</span>
                   <span className="text-gray-900">
                     {new Date(vendor.submissionDate).toLocaleString("id-ID")}
                   </span>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Progress:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Progress:</span>
                   <div className="flex items-center gap-2 flex-1">
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
                       <div
@@ -141,15 +141,15 @@ export default function ProgressVendorModal({
                   </div>
                 </div>
                 <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Est. Complete:</span>
+                  <span className="font-medium text-gray-700 min-w-25">Tanggal Kontrak:</span>
                   <span className="text-gray-900">
                     {new Date(vendor.estimatedCompletion).toLocaleDateString("id-ID")}
                   </span>
                 </div>
-                <div className="flex flex-col xs:flex-row xs:items-start gap-1">
-                  <span className="font-medium text-gray-700 min-w-[100px]">Reviewer:</span>
+                {/* <div className="flex flex-col xs:flex-row xs:items-start gap-1">
+                  <span className="font-medium text-gray-700 min-w-25">Reviewer:</span>
                   <span className="text-gray-900">{vendor.assignedReviewer}</span>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
@@ -218,18 +218,18 @@ export default function ProgressVendorModal({
                         <span className="bg-gray-100 px-2 py-1 rounded">
                           {new Date(doc.uploadDate).toLocaleDateString("id-ID")}
                         </span>
-                        {getPriorityBadge(doc.priority)}
+                        {/* {getPriorityBadge(doc.priority)} */}
                       </div>
                     </div>
                     <div className="flex items-center">
                       <Badge
                         className={`${
-                          doc.status === "on_hold"
+                          doc.status === "on_revision"
                             ? "bg-yellow-100 text-yellow-800 border border-yellow-200"
                             : "bg-blue-100 text-blue-800 border border-blue-200"
                         }`}
                       >
-                        {doc.status === "on_hold" ? "On Hold" : "In Progress"}
+                        {doc.status === "on_revision" ? "On Revision" : "In Progress"}
                       </Badge>
                       <Button
                         size="sm"

@@ -1,5 +1,7 @@
+import { ApiErrorResponse } from "@/app/types";
 import VendorUploadPage from "./components/VendorUploadPage";
 import api from "@/lib/axios";
+import { isAxiosError } from "axios";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -13,11 +15,15 @@ async function getResubmitDocsSSR() {
   try {
     // GUNAKAN ENDPOINT KHUSUS YANG PASTI RETURN DATA
     const { data } = await api.get("/documents/vendor/pending-correction");
-    console.log( data);
+    console.log(data);
     return data;
-  } catch (err: any) {
-    console.error("SSR fetch failed:", err.response?.data || err.message);
-    if (err.response?.status === 401) redirect("/login");
+  } catch (err: unknown) {
+    // console.error("SSR fetch failed:", err.response?.data || err.message);
+    if (isAxiosError<ApiErrorResponse>(err)) {
+      alert(err.response?.data?.message || "Gagal Submit Revisi.");
+    } else {
+      alert("Terjadi kesalahan yang tidak terduga.");
+    }
     return [];
   }
 }

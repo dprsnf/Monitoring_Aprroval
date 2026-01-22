@@ -23,7 +23,7 @@ export default function HistoryVendorCard({ vendor, onViewDetails }: HistoryVend
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {getStatusBadge(vendor.finalStatus)}
-                  {getPriorityBadge(vendor.priority)}
+                  {/* {getPriorityBadge(vendor.priority)} */}
                 </div>
               </div>
               <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 text-xs sm:text-sm">
@@ -76,13 +76,13 @@ export default function HistoryVendorCard({ vendor, onViewDetails }: HistoryVend
               <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               View Details
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               className="flex-1 xs:flex-none border-2 border-[#14a2ba] text-[#14a2ba] hover:bg-[#14a2ba] hover:text-white transition-all duration-200 text-xs sm:text-sm"
             >
               <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Download
-            </Button>
+            </Button> */}
           </div>
         </div>
       </CardContent>
