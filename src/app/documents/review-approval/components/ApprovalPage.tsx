@@ -339,7 +339,6 @@ export default function ApprovalPage() {
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
   };
 
   if (authLoading || (loading && vendorList.length === 0)) {

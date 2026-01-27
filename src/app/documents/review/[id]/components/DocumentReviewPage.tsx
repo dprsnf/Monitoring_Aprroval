@@ -967,19 +967,13 @@ export default function DocumentReviewPage({
     try {
       console.log("📤 Submitting vendor revision...", { documentId, status });
       
-      // ✅ PERBAIKAN: Gunakan endpoint /resubmit dengan FormData kosong
-      // File sudah ter-merge dari saveAnnotations, jadi tidak perlu upload lagi
-      // Backend akan pakai file yang sudah ada di database
-      const formData = new FormData();
-      // Kirim empty blob sebagai file dummy (agar FileInterceptor tidak error)
-      const emptyFile = new Blob([], { type: 'application/pdf' });
-      formData.append('file', emptyFile, 'dummy.pdf');
-
-      await api.patch(`/documents/${documentId}/resubmit`, formData, {
+      // ✅ PERBAIKAN: Tidak perlu upload file karena sudah di-merge via saveAnnotations
+      // Backend hanya perlu update status dokumen dari returnForCorrection → submitted
+      await api.patch(`/documents/${documentId}/vendor-resubmit`, {}, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
         },
-        timeout: 60000, // 1 minute
+        timeout: 30000,
       });
 
       alert("✅ REVISI BERHASIL DIKIRIM!\n\nDokumen telah diresubmit ke Dalkon.\nStatus: returnForCorrection → submitted");
