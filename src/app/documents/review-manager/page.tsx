@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { Clock, CheckCircle, AlertCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import api from "@/lib/axios"
 import { useAuth } from "@/context/AuthContext"
@@ -16,7 +15,6 @@ export default function ManagerPage() {
   const { user: authUser, isLoading: authLoading, logout } = useAuth()
   const [documents, setDocuments] = useState<Document[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState<"new" | "results">("new")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -33,18 +31,12 @@ export default function ManagerPage() {
   const loadDocuments = useCallback(async () => {
     if (!currentUser || currentUser.division !== Division.Manager) return
 
-    const endpoint = activeTab === "new" ? "/documents" : "/documents/history"
-
     try {
       setLoading(true)
       setError(null)
-      const response = await api.get(endpoint)
-      // Filter untuk Manager: hanya yang status inReviewManager untuk "new"
-      if (activeTab === "new") {
-        setDocuments(response.data.filter((doc: Document) => doc.status === Status.inReviewManager))
-      } else {
-        setDocuments(response.data)
-      }
+      const response = await api.get("/documents")
+      // Filter untuk Manager: hanya yang status inReviewManager
+      setDocuments(response.data.filter((doc: Document) => doc.status === Status.inReviewManager))
     } catch (err: unknown) {
       if (isAxiosError<ApiErrorResponse>(err)) {
         setError(err.response?.data?.message || "Gagal memuat dokumen.")
@@ -54,13 +46,13 @@ export default function ManagerPage() {
     } finally {
       setLoading(false)
     }
-  }, [currentUser, activeTab])
+  }, [currentUser])
 
   useEffect(() => {
     if (!authLoading && currentUser) {
       loadDocuments()
     }
-  }, [authLoading, currentUser, loadDocuments, activeTab])
+  }, [authLoading, currentUser, loadDocuments])
 
   const filteredData = documents.filter((doc) => {
     const matchesSearch =
@@ -110,38 +102,6 @@ export default function ManagerPage() {
           </p>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="mb-6">
-          <div className="flex gap-4 p-2 bg-white/80 backdrop-blur-sm rounded-xl shadow-md border border-white/20">
-            <Button
-              onClick={() => setActiveTab("new")}
-              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                activeTab === "new"
-                  ? "bg-[#125d72] text-white shadow-md"
-                  : "bg-transparent text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <Clock className="w-4 h-4" />
-                <span>Pending Review</span>
-              </div>
-            </Button>
-            <Button
-              onClick={() => setActiveTab("results")}
-              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                activeTab === "results"
-                  ? "bg-[#125d72] text-white shadow-md"
-                  : "bg-transparent text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                <span>Review Results</span>
-              </div>
-            </Button>
-          </div>
-        </div>
-
         {/* Search Bar */}
         <div className="mb-6">
           <input
@@ -159,9 +119,7 @@ export default function ManagerPage() {
             Array.from({ length: 3 }).map((_, index) => <DocumentCardSkeleton key={index} />)
           ) : filteredData.length === 0 ? (
             <div className="text-center py-12 bg-white/80 rounded-xl">
-              <p className="text-gray-600 text-lg">
-                {activeTab === "new" ? "Tidak ada dokumen yang perlu direview." : "Tidak ada riwayat review."}
-              </p>
+              <p className="text-gray-600 text-lg">Tidak ada dokumen yang perlu direview.</p>
             </div>
           ) : (
             filteredData.map((doc) => <ManagerDocumentCard key={doc.id} document={doc} onRefresh={loadDocuments} />)

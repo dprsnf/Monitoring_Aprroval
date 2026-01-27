@@ -22,8 +22,10 @@ import { Card } from "@/components/ui/card";
 import Header from "@/components/common/Header";
 import { ApiErrorResponse, Division } from "@/app/types";
 import { isAxiosError } from "axios";
+import { useAuth } from "@/context/AuthContext";
 
 export default function HistoryPage() {
+  const { user: currentUser, isLoading: authLoading, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedVendor, setSelectedVendor] = useState<VendorHistory | null>(
@@ -37,25 +39,6 @@ export default function HistoryPage() {
   const [historyData, setHistoryData] = useState<VendorHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-  useEffect(() => {
-    // Get current user from localStorage/context
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      try {
-        setCurrentUser(JSON.parse(userData));
-      } catch {
-        setCurrentUser({
-          id: 0,
-          name: "History Team",
-          email: "history@pln.co.id",
-          division: Division.Dalkon,
-        });
-      }
-    }
-  }, []);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -181,15 +164,15 @@ export default function HistoryPage() {
     setShowDocumentModal(true);
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
         <Header
-          currentUser={currentUser}
+          currentUser={currentUser || null}
           title="History & Reports System"
           backHref="/dashboard"
           backLabel="Dashboard"
-          onLogout={() => {}}
+          onLogout={logout}
         />
         <main className="max-w-7xl mx-auto p-6">
           <Card className="p-12 text-center">
@@ -211,11 +194,11 @@ export default function HistoryPage() {
     return (
       <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
         <Header
-          currentUser={currentUser}
+          currentUser={currentUser || null}
           title="History & Reports System"
           backHref="/dashboard"
           backLabel="Dashboard"
-          onLogout={() => {}}
+          onLogout={logout}
         />
         <main className="max-w-7xl mx-auto p-6">
           <Card className="p-8 text-center bg-red-50 border-red-200">
@@ -239,16 +222,11 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-linear-to-br from-[#14a2ba] via-[#125d72] to-[#efe62f]">
       <Header
-        currentUser={currentUser || {
-          id: 0,
-          name: "User",
-          email: "user@pln.co.id",
-          division: Division.Dalkon,
-        }}
+        currentUser={currentUser}
         title="History & Reports System"
         backHref="/dashboard"
         backLabel="Dashboard"
-        onLogout={() => console.log("Logout")}
+        onLogout={logout}
       />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">

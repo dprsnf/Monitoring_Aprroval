@@ -23,7 +23,7 @@ export default function ApprovalModal({
         if (documentType === ApprovalType.protection) {
             return "Tim Engineering (Protection)";
         } else if (documentType === ApprovalType.civil) {
-            return "Tim Consultant (Civil)";
+            return "Tim Engineering (Civil)";
         }
         return "Tim Teknis";
     };
