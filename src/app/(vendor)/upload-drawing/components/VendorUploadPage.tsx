@@ -248,7 +248,69 @@ export default function VendorUploadPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#14a2ba]">
+    <div className="min-h-screen bg-[#14a2ba] relative">
+      {/* Loading Overlay */}
+      {isUploading && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <Loader2 className="w-16 h-16 text-[#14a2ba] animate-spin mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Uploading Documents...
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Mohon tunggu, dokumen sedang diupload ke server
+              </p>
+              
+              {/* Progress per file */}
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {uploadedFiles
+                  .filter((f) => f.status === "uploading" || f.status === "completed")
+                  .map((file) => (
+                    <div key={file.id} className="text-left">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-gray-700 truncate flex-1">
+                          {file.name}
+                        </span>
+                        <span className="text-sm font-semibold text-[#14a2ba] ml-2">
+                          {file.progress}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-[#14a2ba] h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${file.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              <p className="text-sm text-gray-500 mt-4">
+                Jangan tutup halaman ini sampai proses selesai
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay untuk Resubmit */}
+      {resubmitUploadingId !== null && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <Loader2 className="w-16 h-16 text-[#14a2ba] animate-spin mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Uploading Revision...
+              </h3>
+              <p className="text-gray-600">
+                Mohon tunggu, dokumen revisi sedang diupload
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Header
         title="Upload Drawing"
         currentUser={user}
@@ -564,7 +626,7 @@ export default function VendorUploadPage({
               canSubmit={
                 uploadedFiles.some(
                   (f) => f.status === "pending" || f.status === "error",
-                ) && !isUploading
+                ) && !isUploading && resubmitUploadingId === null
               }
             />
           </div>
